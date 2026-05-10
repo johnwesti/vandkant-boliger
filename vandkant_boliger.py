@@ -36,7 +36,7 @@ from tqdm import tqdm
 # KONFIGURATION
 # ─────────────────────────────────────────────
 MAX_AFSTAND_METER = 200          # Filtrér boliger inden for denne afstand
-BOLIG_TYPER = [1, 4, 5]           # 1=Villa, 4=Fritidshus, 5=Grund (2=Rækkehus fjernet)
+BOLIG_TYPER = [1, 4, 5, 7, 8, 10]  # 1=Villa, 4=Fritidshus, 5=Landejendom, 7=Helårsgrund, 8=Fritidsgrund, 10=Andet/Tvangsauktion
 OUTPUT_CSV  = "vandkant_boliger.csv"
 OUTPUT_HTML = "vandkant_kort.html"
 
@@ -314,7 +314,7 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
     
     # Hent for hver boligtype separat for bedre dækning
     for bolig_type in bolig_typer:
-        type_navne = {1: "Villa/Parcelhus", 2: "Rækkehus", 3: "Ejerlejlighed", 4: "Fritidshus", 5: "Grund"}
+        type_navne = {1: "Villa/Parcelhus", 2: "Rækkehus", 3: "Ejerlejlighed", 4: "Fritidshus", 5: "Landejendom", 6: "Villalejlighed", 7: "Helårsgrund", 8: "Fritidsgrund", 9: "Andelsbolig", 10: "Tvangsauktion"}
         print(f"  → Henter type: {type_navne.get(bolig_type, str(bolig_type))}")
         
         side = 1
@@ -377,6 +377,7 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
                     "ouAddress":    str(bolig.get("ouAddress", "")),
                     "ouId":         str(bolig.get("ouId", "")),
                     "adresseId":    str(bolig.get("adresseId", "") or ""),
+                    "tvangsauktion": bolig.get("isForeclosure", False),
                     "sekundaerType": bolig.get("secondaryPropertyType", None),
                     "bfeNr":        str(bolig.get("bfeNr", "")),
                     "url":          f"https://www.boliga.dk/adresse/{bolig.get('ouAddress')}-{bolig.get('ouId', '')}",
@@ -674,7 +675,16 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
           <input type="checkbox" value="Fritidshus" checked onchange="applyFilters()"> Fritidshus
         </label>
         <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
-          <input type="checkbox" value="Grund" checked onchange="applyFilters()"> Grund
+          <input type="checkbox" value="Landejendom" checked onchange="applyFilters()"> Landejendom
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
+          <input type="checkbox" value="Helårsgrund" checked onchange="applyFilters()"> Helårsgrund
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
+          <input type="checkbox" value="Fritidsgrund" checked onchange="applyFilters()"> Fritidsgrund
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
+          <input type="checkbox" value="Tvangsauktion" checked onchange="applyFilters()"> Tvangsauktion
         </label>
       </div>
     </div>
@@ -841,7 +851,8 @@ function applyFilters() {{
 
   // Opdater knap-tekst
   const btn = document.getElementById("type-btn");
-  btn.textContent = checkedTypes.length === 3 ? "Boligtype ▾" : checkedTypes.join(", ") + " ▾";
+  const totalTypes = document.querySelectorAll("#type-menu input").length;
+  btn.textContent = checkedTypes.length === totalTypes ? "Boligtype ▾" : checkedTypes.length + " valgt ▾";
 
   render();
 }}
