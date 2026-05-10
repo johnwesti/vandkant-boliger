@@ -2,7 +2,8 @@ name: Opdater Vandkant Boliger
 
 on:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 6 * * *'
+    - cron: '0 17 * * *'    
   workflow_dispatch:
 
 permissions:
