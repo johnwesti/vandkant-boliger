@@ -2,10 +2,8 @@ name: Opdater Vandkant Boliger
 
 on:
   schedule:
-    # Kører hver dag kl. 06:00 dansk tid (04:00 UTC)
     - cron: '0 4 * * *'
   workflow_dispatch:
-    # Tillader manuel kørsel fra GitHub UI (knappen "Run workflow")
 
 permissions:
   contents: write
@@ -17,33 +15,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Hent kode fra repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Opsæt Python 3.11
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Installér afhængigheder
+      - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Kør vandkant_boliger.py
+      - name: Run script
         run: python vandkant_boliger.py
-        # Ingen cache i GitHub Actions – henter altid friske data
 
-      - name: Kopier HTML til docs/ mappe (GitHub Pages)
+      - name: Copy to docs
         run: |
           mkdir -p docs
           cp vandkant_kort.html docs/index.html
           cp vandkant_boliger.csv docs/vandkant_boliger.csv
 
-      - name: Commit og push opdateret side
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/
-          git diff --staged --quiet || git commit -m "Automatisk opdatering $(date '+%Y-%m-%d %H:%M')"
+          git diff --staged --quiet || git commit -m "Auto update $(date '+%Y-%m-%d %H:%M')"
           git push
