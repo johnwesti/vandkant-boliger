@@ -1,8 +1,13 @@
 # 🌊 Vandkant Boliger
 
-Finder automatisk alle ejendomme til salg i Danmark inden for 200 meter fra kysten.
+[![Opdater Vandkant Boliger](https://github.com/johnwesti/vandkant-boliger/actions/workflows/opdater.yml/badge.svg)](https://github.com/johnwesti/vandkant-boliger/actions/workflows/opdater.yml)
 
-Opdateres dagligt via GitHub Actions og publiceres på GitHub Pages.
+**🗺 [Se kortet live](https://johnwesti.github.io/vandkant-boliger/)** &nbsp;|&nbsp; **⚙️ [Kør workflow manuelt](https://github.com/johnwesti/vandkant-boliger/actions/workflows/opdater.yml)**
+
+---
+
+Finder automatisk alle ejendomme til salg i Danmark inden for 200 meter fra kysten.
+Opdateres to gange dagligt via GitHub Actions og publiceres på GitHub Pages.
 
 ## Kom i gang
 
@@ -21,16 +26,6 @@ Upload disse filer til dit nye repository:
 - `requirements.txt`
 - `.github/workflows/opdater.yml`
 
-Det nemmeste er via GitHub's webgrænseflade:
-- Klik **Add file** → **Upload files**
-- Træk filerne ind
-- Klik **Commit changes**
-
-For `.github/workflows/opdater.yml` skal du oprette mapperne manuelt:
-- Klik **Add file** → **Create new file**
-- Skriv `.github/workflows/opdater.yml` som filnavn
-- Indsæt indholdet fra filen
-
 ### 3. Aktivér GitHub Pages
 
 1. Gå til **Settings** → **Pages**
@@ -43,14 +38,7 @@ For `.github/workflows/opdater.yml` skal du oprette mapperne manuelt:
 1. Gå til **Actions** fanen
 2. Klik på **Opdater Vandkant Boliger**
 3. Klik **Run workflow** → **Run workflow**
-4. Vent 5-10 minutter mens scriptet kører
-
-### 5. Se din side
-
-Din side er nu live på:
-```
-https://DITBRUGERNAVN.github.io/vandkant-boliger/
-```
+4. Vent 5-10 minutter
 
 ## Tilpasning
 
@@ -58,16 +46,16 @@ Rediger øverst i `vandkant_boliger.py`:
 
 ```python
 MAX_AFSTAND_METER = 200      # Afstand til kyst
-BOLIG_TYPER = [1, 2, 4, 5]  # Boligtyper
+BOLIG_TYPER = [1, 4, 5]     # 1=Villa, 4=Fritidshus, 5=Grund
 EKSKLUDER_BYER = { ... }     # Byer der filtreres væk
 ```
 
 ## Automatisk opdatering
 
-Scriptet kører automatisk hver dag kl. 06:00 dansk tid.
-Du kan også starte det manuelt under **Actions** → **Run workflow**.
+Scriptet kører automatisk to gange dagligt — kl. 06:00 og 18:00 dansk tid.
+Du kan også starte det manuelt under [Actions](https://github.com/johnwesti/vandkant-boliger/actions/workflows/opdater.yml).
 
 ## Output
 
-- `docs/index.html` — interaktivt kort (GitHub Pages)
+- **[Live kort](https://johnwesti.github.io/vandkant-boliger/)** — interaktivt kort med alle vandkant-boliger
 - `docs/vandkant_boliger.csv` — rådata til download

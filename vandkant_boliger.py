@@ -36,7 +36,7 @@ from tqdm import tqdm
 # KONFIGURATION
 # ─────────────────────────────────────────────
 MAX_AFSTAND_METER = 200          # Filtrér boliger inden for denne afstand
-BOLIG_TYPER = [1, 2, 4, 5]      # 1=Villa, 2=Rækkehus, 4=Fritidshus, 5=Grund
+BOLIG_TYPER = [1, 4, 5]           # 1=Villa, 4=Fritidshus, 5=Grund (2=Rækkehus fjernet)
 OUTPUT_CSV  = "vandkant_boliger.csv"
 OUTPUT_HTML = "vandkant_kort.html"
 
@@ -376,6 +376,8 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
                     "energimaerke": bolig.get("energyClass", ""),
                     "ouAddress":    str(bolig.get("ouAddress", "")),
                     "ouId":         str(bolig.get("ouId", "")),
+                    "adresseId":    str(bolig.get("adresseId", "") or ""),
+                    "sekundaerType": bolig.get("secondaryPropertyType", None),
                     "bfeNr":        str(bolig.get("bfeNr", "")),
                     "url":          f"https://www.boliga.dk/adresse/{bolig.get('ouAddress')}-{bolig.get('ouId', '')}",
                     "lat":          float(lat),
@@ -427,6 +429,18 @@ def filtrer_ekskluderede(boliger):
             continue
 
         resultat.append(b)
+
+    # Fjern andelsboliger (dukker op under type Grund)
+    # secondaryPropertyType 6 = andelsbolig ifølge Boligas API
+    før_andel = len(resultat)
+    resultat = [b for b in resultat if not (
+        b.get("sekundaerType") == 6 or
+        str(b.get("adresse", "")).upper().startswith("A/B") or
+        "andel" in str(b.get("adresse", "")).lower()
+    )]
+    andel_fjernet = før_andel - len(resultat)
+    if andel_fjernet:
+        print(f"  → Ekskluderet {andel_fjernet} andelsboliger")
 
     fjernet = før - len(resultat)
     print(f"  → Ekskluderet {fjernet} boliger pga. by/kommune/postnummer-filter")
@@ -521,6 +535,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
             "url":       str(row.get("url", "#")),
             "ouAddress": str(row.get("ouAddress", "")),
             "ouId":      str(row.get("ouId", "")),
+            "adresseId": str(row.get("adresseId", "") or ""),
             "bfeNr":     str(row.get("bfeNr", "")),
             "billede":   (lambda i: f"https://i.boliga.org/dk/550x/{str(i)[:4]}/{i}.jpg" if i else "")(
                 next((v for v in [row.get("id"), row.get("guid")] if v and str(v).isdigit()), None)
@@ -645,14 +660,24 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
 <div id="topbar">
   <h1>🌊 Vandkant Boliger</h1>
   <span class="count" id="result-count">{len(gdf)} boliger inden for {MAX_AFSTAND_METER}m fra kysten</span>
+  <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: {__import__("datetime").datetime.now().strftime("%d.%m.%Y %H:%M")}</span>
   <div class="filters">
-    <select id="filter-type" onchange="applyFilters()">
-      <option value="">Alle typer</option>
-      <option value="Villa/Parcelhus">Villa</option>
-      <option value="Rækkehus">Rækkehus</option>
-      <option value="Fritidshus">Fritidshus</option>
-      <option value="Grund">Grund</option>
-    </select>
+    <div style="position:relative;display:inline-block">
+      <button id="type-btn" onclick="toggleTypeMenu()" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
+        Boligtype ▾
+      </button>
+      <div id="type-menu" style="display:none;position:absolute;top:34px;left:0;background:white;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:8px;z-index:2000;min-width:160px">
+        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
+          <input type="checkbox" value="Villa/Parcelhus" checked onchange="applyFilters()"> Villa/Parcelhus
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
+          <input type="checkbox" value="Fritidshus" checked onchange="applyFilters()"> Fritidshus
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
+          <input type="checkbox" value="Grund" checked onchange="applyFilters()"> Grund
+        </label>
+      </div>
+    </div>
     <select id="filter-afstand" onchange="applyFilters()">
       <option value="200">Max 200m</option>
       <option value="75">Max 75m</option>
@@ -736,8 +761,8 @@ function buildMarker(b, idx) {{
       <a class="popup-link" href="https://www.boliga.dk/adresse/${{b.ouAddress}}-${{b.ouId}}" target="_blank">Se annonce på Boliga →</a>
       <a class="popup-link" style="margin-top:6px;background:#e67e22" href="https://www.boligsiden.dk/adresse/${{b.ouAddress}}" target="_blank">Se annonce på Boligsiden →</a>
       ${{b.bfeNr ? `<a class="popup-link" style="margin-top:6px;background:#1a6b3a" href="https://www.matriklen.dk/#/kort/sfe/${{b.bfeNr}}" target="_blank">🗺 Matrikel →</a>` : ""}}
-      ${{b.bfeNr ? `<a class="popup-link" style="margin-top:6px;background:#7d3c98" href="https://www.ois.dk/?search=${{encodeURIComponent(b.adresse + ' ' + b.pnr)}}" target="_blank">📋 OIS →</a>` : ""}}
-      <a class="popup-link" style="margin-top:6px;background:#1a4a6b" href="https://www.tinglysning.dk/tinglysning/unsecured/adressesoegning.xhtml?query=${{encodeURIComponent(b.adresse)}}" target="_blank">⚖️ Tinglysning →</a>
+      ${{b.bfeNr ? `<a class="popup-link" style="margin-top:6px;background:#7d3c98" href="https://www.ois.dk/search/${{b.bfeNr}}" target="_blank">📋 OIS →</a>` : ""}}
+      <a class="popup-link" style="margin-top:6px;background:#1a4a6b" href="https://www.tinglysning.dk/tmv/forespoergul" target="_blank">⚖️ Tinglysning →</a>
     </div>`;
 
   m.bindPopup(popupHtml, {{maxWidth: 280}});
@@ -766,8 +791,8 @@ function buildCard(b, idx) {{
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
           <a href="https://www.boligsiden.dk/adresse/${{b.ouAddress}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#e67e22;text-decoration:none;font-weight:600;border:1px solid #e67e22;border-radius:4px;padding:2px 6px">🏠 Boligsiden</a>
           ${{b.bfeNr ? `<a href="https://www.matriklen.dk/#/kort/sfe/${{b.bfeNr}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#1a6b3a;text-decoration:none;font-weight:600;border:1px solid #1a6b3a;border-radius:4px;padding:2px 6px">🗺 Matrikel</a>` : ""}}
-          ${{b.bfeNr ? `<a href="https://www.ois.dk/?search=${{encodeURIComponent(b.adresse + ' ' + b.pnr)}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#7d3c98;text-decoration:none;font-weight:600;border:1px solid #7d3c98;border-radius:4px;padding:2px 6px">📋 OIS</a>` : ""}}
-          <a href="https://www.tinglysning.dk/tinglysning/unsecured/adressesoegning.xhtml?query=${{encodeURIComponent(b.adresse)}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#1a4a6b;text-decoration:none;font-weight:600;border:1px solid #1a4a6b;border-radius:4px;padding:2px 6px">⚖️ Tinglysning</a>
+          ${{b.bfeNr ? `<a href="https://www.ois.dk/search/${{b.bfeNr}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#7d3c98;text-decoration:none;font-weight:600;border:1px solid #7d3c98;border-radius:4px;padding:2px 6px">📋 OIS</a>` : ""}}
+          <a href="https://www.tinglysning.dk/tmv/forespoergul" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#1a4a6b;text-decoration:none;font-weight:600;border:1px solid #1a4a6b;border-radius:4px;padding:2px 6px">⚖️ Tinglysning</a>
         </div>
       </div>
     </a>`;
@@ -791,16 +816,32 @@ function unhighlightMarker(idx) {{
 
 let visibleBoliger = BOLIGER;
 
+function toggleTypeMenu() {{
+  const m = document.getElementById("type-menu");
+  m.style.display = m.style.display === "none" ? "block" : "none";
+}}
+
+document.addEventListener("click", function(e) {{
+  if (!document.getElementById("type-btn").contains(e.target) &&
+      !document.getElementById("type-menu").contains(e.target)) {{
+    document.getElementById("type-menu").style.display = "none";
+  }}
+}});
+
 function applyFilters() {{
-  const type     = document.getElementById("filter-type").value;
+  const checkedTypes = Array.from(document.querySelectorAll("#type-menu input:checked")).map(i => i.value);
   const afstand  = parseInt(document.getElementById("filter-afstand").value);
   const maxpris  = parseInt(document.getElementById("filter-maxpris").value) || Infinity;
 
   visibleBoliger = BOLIGER.filter(b =>
-    (!type || b.type === type) &&
+    (checkedTypes.length === 0 || checkedTypes.includes(b.type)) &&
     b.afstand <= afstand &&
     (!maxpris || b.pris <= maxpris || b.pris === 0)
   );
+
+  // Opdater knap-tekst
+  const btn = document.getElementById("type-btn");
+  btn.textContent = checkedTypes.length === 3 ? "Boligtype ▾" : checkedTypes.join(", ") + " ▾";
 
   render();
 }}
@@ -860,7 +901,11 @@ render();
 # MAIN
 # ─────────────────────────────────────────────
 def main():
-    global MAX_AFSTAND_METER
+    global MAX_AFSTAND_METER, BRUG_CACHE
+    # Deaktiver cache automatisk i GitHub Actions
+    if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+        BRUG_CACHE = False
+        print("  → GitHub Actions detekteret – cache deaktiveret")
     parser = argparse.ArgumentParser(description="Find boliger tæt på dansk kyst")
     parser.add_argument("--refresh", choices=["alle", "boliger", "kyst"],
                         help="Tving genhentning: 'alle', 'boliger' eller 'kyst'")

@@ -1,0 +1,50 @@
+name: Opdater Vandkant Boliger
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  byg-og-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run script
+        run: python vandkant_boliger.py
+
+      - name: Copy to docs
+        run: |
+          mkdir -p docs
+          cp vandkant_kort.html docs/index.html
+          cp vandkant_boliger.csv docs/vandkant_boliger.csv
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git diff --staged --quiet || git commit -m "Auto update $(date '+%Y-%m-%d %H:%M')"
+          git pull --rebase origin main
+          git push
