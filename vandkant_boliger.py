@@ -376,7 +376,6 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
                     "energimaerke": bolig.get("energyClass", ""),
                     "ouAddress":    str(bolig.get("ouAddress", "")),
                     "ouId":         str(bolig.get("ouId", "")),
-                    "adresseId":    str(bolig.get("adresseId", "") or ""),
                     "bfeNr":        str(bolig.get("bfeNr", "")),
                     "url":          f"https://www.boliga.dk/adresse/{bolig.get('ouAddress')}-{bolig.get('ouId', '')}",
                     "lat":          float(lat),
@@ -522,7 +521,6 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
             "url":       str(row.get("url", "#")),
             "ouAddress": str(row.get("ouAddress", "")),
             "ouId":      str(row.get("ouId", "")),
-            "adresseId": str(row.get("adresseId", "") or ""),
             "bfeNr":     str(row.get("bfeNr", "")),
             "billede":   (lambda i: f"https://i.boliga.org/dk/550x/{str(i)[:4]}/{i}.jpg" if i else "")(
                 next((v for v in [row.get("id"), row.get("guid")] if v and str(v).isdigit()), None)
@@ -738,8 +736,8 @@ function buildMarker(b, idx) {{
       <a class="popup-link" href="https://www.boliga.dk/adresse/${{b.ouAddress}}-${{b.ouId}}" target="_blank">Se annonce på Boliga →</a>
       <a class="popup-link" style="margin-top:6px;background:#e67e22" href="https://www.boligsiden.dk/adresse/${{b.ouAddress}}" target="_blank">Se annonce på Boligsiden →</a>
       ${{b.bfeNr ? `<a class="popup-link" style="margin-top:6px;background:#1a6b3a" href="https://www.matriklen.dk/#/kort/sfe/${{b.bfeNr}}" target="_blank">🗺 Matrikel →</a>` : ""}}
-      ${{b.bfeNr ? `<a class="popup-link" style="margin-top:6px;background:#7d3c98" href="https://www.ois.dk/search/${{b.bfeNr}}" target="_blank">📋 OIS →</a>` : ""}}
-      <a class="popup-link" style="margin-top:6px;background:#1a4a6b" href="https://www.tinglysning.dk/tmv/forespoergul" target="_blank">⚖️ Tinglysning →</a>
+      ${{b.bfeNr ? `<a class="popup-link" style="margin-top:6px;background:#7d3c98" href="https://www.ois.dk/?search=${{encodeURIComponent(b.adresse + ' ' + b.pnr)}}" target="_blank">📋 OIS →</a>` : ""}}
+      <a class="popup-link" style="margin-top:6px;background:#1a4a6b" href="https://www.tinglysning.dk/tinglysning/unsecured/adressesoegning.xhtml?query=${{encodeURIComponent(b.adresse)}}" target="_blank">⚖️ Tinglysning →</a>
     </div>`;
 
   m.bindPopup(popupHtml, {{maxWidth: 280}});
@@ -768,8 +766,8 @@ function buildCard(b, idx) {{
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
           <a href="https://www.boligsiden.dk/adresse/${{b.ouAddress}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#e67e22;text-decoration:none;font-weight:600;border:1px solid #e67e22;border-radius:4px;padding:2px 6px">🏠 Boligsiden</a>
           ${{b.bfeNr ? `<a href="https://www.matriklen.dk/#/kort/sfe/${{b.bfeNr}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#1a6b3a;text-decoration:none;font-weight:600;border:1px solid #1a6b3a;border-radius:4px;padding:2px 6px">🗺 Matrikel</a>` : ""}}
-          ${{b.bfeNr ? `<a href="https://www.ois.dk/search/${{b.bfeNr}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#7d3c98;text-decoration:none;font-weight:600;border:1px solid #7d3c98;border-radius:4px;padding:2px 6px">📋 OIS</a>` : ""}}
-          <a href="https://www.tinglysning.dk/tmv/forespoergul" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#1a4a6b;text-decoration:none;font-weight:600;border:1px solid #1a4a6b;border-radius:4px;padding:2px 6px">⚖️ Tinglysning</a>
+          ${{b.bfeNr ? `<a href="https://www.ois.dk/?search=${{encodeURIComponent(b.adresse + ' ' + b.pnr)}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#7d3c98;text-decoration:none;font-weight:600;border:1px solid #7d3c98;border-radius:4px;padding:2px 6px">📋 OIS</a>` : ""}}
+          <a href="https://www.tinglysning.dk/tinglysning/unsecured/adressesoegning.xhtml?query=${{encodeURIComponent(b.adresse)}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#1a4a6b;text-decoration:none;font-weight:600;border:1px solid #1a4a6b;border-radius:4px;padding:2px 6px">⚖️ Tinglysning</a>
         </div>
       </div>
     </a>`;
@@ -862,11 +860,7 @@ render();
 # MAIN
 # ─────────────────────────────────────────────
 def main():
-    global MAX_AFSTAND_METER, BRUG_CACHE
-    # Deaktiver cache automatisk i GitHub Actions
-    if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
-        BRUG_CACHE = False
-        print("  → GitHub Actions detekteret – cache deaktiveret")
+    global MAX_AFSTAND_METER
     parser = argparse.ArgumentParser(description="Find boliger tæt på dansk kyst")
     parser.add_argument("--refresh", choices=["alle", "boliger", "kyst"],
                         help="Tving genhentning: 'alle', 'boliger' eller 'kyst'")
