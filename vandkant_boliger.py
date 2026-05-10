@@ -379,6 +379,7 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
                     "ouId":         str(bolig.get("ouId", "")),
                     "adresseId":    str(bolig.get("adresseId", "") or ""),
                     "tvangsauktion": bolig.get("isForeclosure", False),
+                    "liggetid":     bolig.get("daysForSale", 0),
                     "sekundaerType": bolig.get("secondaryPropertyType", None),
                     "bfeNr":        str(bolig.get("bfeNr", "")),
                     "url":          f"https://www.boliga.dk/adresse/{bolig.get('ouAddress')}-{bolig.get('ouId', '')}",
@@ -509,6 +510,23 @@ def gem_csv(gdf, filnavn=OUTPUT_CSV):
     return filnavn
 
 
+def gem_boliger_json(gdf, filnavn="boliger.json"):
+    """Gemmer let JSON til filtersiden (by, postnr, pris, type, afstand)."""
+    import json as _json
+    data = []
+    for _, row in gdf.iterrows():
+        data.append({
+            "by":  str(row.get("by", "")),
+            "pnr": str(row.get("postnummer", "")),
+            "pris": int(row["pris"]) if pd.notna(row.get("pris")) and row.get("pris") else 0,
+            "type": str(row.get("type", "")),
+            "afstand": float(row["afstand_m"]),
+        })
+    with open(filnavn, "w", encoding="utf-8") as f:
+        _json.dump(data, f, ensure_ascii=False)
+    print(f"  ✓ boliger.json gemt: {filnavn}")
+
+
 def gem_kort(gdf, filnavn=OUTPUT_HTML):
     """Laver et interaktivt Folium-kort i Boliga-stil med clustering og property cards."""
     print(f"  → Genererer interaktivt kort...")
@@ -535,11 +553,13 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
             "byggeaar":  str(row.get("byggeaar", "") or ""),
             "energi":    str(row.get("energimaerke", "") or ""),
             "afstand":   float(row["afstand_m"]),
+            "liggetid":  int(row["liggetid"]) if pd.notna(row.get("liggetid")) and row.get("liggetid") else 0,
             "url":       str(row.get("url", "#")),
             "ouAddress": str(row.get("ouAddress", "")),
             "ouId":      str(row.get("ouId", "")),
             "adresseId": str(row.get("adresseId", "") or ""),
             "bfeNr":     str(row.get("bfeNr", "")),
+            "dingeo":    (lambda pnr, by, adr: f"https://www.dingeo.dk/adresse/{pnr}-{by.lower().replace(' ','-').replace('æ','ae').replace('ø','oe').replace('å','aa')}/{adr.lower().replace(' ','-').replace('æ','ae').replace('ø','oe').replace('å','aa')}/" if pnr and by and adr else "")(str(row.get("postnummer","")), str(row.get("by","")), str(row.get("adresse","") or "")),
             "billede":   (lambda i: f"https://i.boliga.org/dk/550x/{str(i)[:4]}/{i}.jpg" if i else "")(
                 next((v for v in [row.get("id"), row.get("guid")] if v and str(v).isdigit()), None)
             ),
@@ -652,6 +672,23 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
   .pris-marker.roed  {{ border-color: #c0392b; color: #c0392b; }}
   .pris-marker.orange{{ border-color: #d35400; color: #d35400; }}
 
+  .filter-group {{ margin-bottom: 14px; }}
+  .filter-group label {{ display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px; }}
+  .range-row {{ display:flex; justify-content:space-between; font-size:12px; color:#1a5276; font-weight:600; margin-bottom:4px; }}
+  .dual-range {{ position:relative; height:20px; }}
+  .dual-range input[type=range] {{
+    position:absolute; width:100%; height:4px; background:transparent;
+    pointer-events:none; -webkit-appearance:none; outline:none;
+  }}
+  .dual-range input[type=range]::-webkit-slider-thumb {{
+    -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:#1a5276; cursor:pointer; pointer-events:all;
+    border:2px solid white; box-shadow:0 1px 4px rgba(0,0,0,.3);
+  }}
+  .dual-range input[type=range]::-webkit-slider-runnable-track {{
+    height:4px; background:#dde8f0; border-radius:2px;
+  }}
+
   @media (max-width: 700px) {{
     #map {{ right: 0; bottom: 45vh; }}
     #sidebar {{ top: 55vh; right: 0; left: 0; width: 100%; }}
@@ -673,17 +710,89 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
         <div id="type-checkboxes"></div>
       </div>
     </div>
+    <button id="filter-btn" onclick="toggleFilterPanel()" style="border:none;border-radius:6px;padding:5px 12px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
+      Filtre ▾
+    </button>
     <select id="filter-afstand" onchange="applyFilters()" title="Max afstand til kyst">
       <option value="200">Max 200m</option>
       <option value="75">Max 75m</option>
       <option value="30">Max 30m</option>
     </select>
-    <input type="number" id="filter-minpris" placeholder="Min pris" onchange="applyFilters()" style="width:100px" title="Min pris (kr)">
-    <input type="number" id="filter-maxpris" placeholder="Max pris" onchange="applyFilters()" style="width:100px" title="Max pris (kr)">
-    <input type="number" id="filter-minkvm" placeholder="Min m²" onchange="applyFilters()" style="width:75px" title="Min boligareal (m²)">
-    <input type="number" id="filter-maxkvm" placeholder="Max m²" onchange="applyFilters()" style="width:75px" title="Max boligareal (m²)">
-    <input type="number" id="filter-mingrund" placeholder="Min grund" onchange="applyFilters()" style="width:90px" title="Min grundstørrelse (m²)">
-    <input type="number" id="filter-maxgrund" placeholder="Max grund" onchange="applyFilters()" style="width:90px" title="Max grundstørrelse (m²)">
+
+  </div>
+  <!-- Filter panel -->
+  <div id="filter-panel" style="display:none;position:fixed;top:48px;right:0;width:360px;background:white;border-left:1px solid #ddd;border-bottom:1px solid #ddd;border-radius:0 0 0 10px;z-index:999;box-shadow:-4px 4px 16px rgba(0,0,0,.15);display:none;flex-direction:column;max-height:calc(100vh - 48px)">
+
+    <!-- Faner -->
+    <div style="display:flex;border-bottom:2px solid #eee">
+      <button id="tab-filtre" onclick="skiftTab('filtre')" style="flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:600;color:#1a5276;border-bottom:2px solid #1a5276;margin-bottom:-2px;cursor:pointer">Filtre</button>
+      <button id="tab-byer" onclick="skiftTab('byer')" style="flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:600;color:#999;cursor:pointer">Byer <span id="byer-badge" style="display:none;background:#e74c3c;color:white;border-radius:10px;padding:1px 6px;font-size:10px"></span></button>
+      <button onclick="nulstilFiltre()" style="padding:8px 12px;border:none;background:none;font-size:11px;color:#999;cursor:pointer;border-left:1px solid #eee">Nulstil</button>
+    </div>
+
+    <!-- Tab: Sliders -->
+    <div id="panel-filtre" style="padding:14px;overflow-y:auto">
+      <div class="filter-group">
+        <label>Pris</label>
+        <div class="range-row"><span id="lbl-minpris">0 kr.</span><span id="lbl-maxpris">40 mio.</span></div>
+        <div class="dual-range">
+          <input type="range" id="slider-minpris" min="0" max="40000000" step="250000" value="0" oninput="updateSlider('pris')">
+          <input type="range" id="slider-maxpris" min="0" max="40000000" step="250000" value="40000000" oninput="updateSlider('pris')">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Boligareal (m²)</label>
+        <div class="range-row"><span id="lbl-minkvm">0 m²</span><span id="lbl-maxkvm">500+ m²</span></div>
+        <div class="dual-range">
+          <input type="range" id="slider-minkvm" min="0" max="500" step="10" value="0" oninput="updateSlider('kvm')">
+          <input type="range" id="slider-maxkvm" min="0" max="500" step="10" value="500" oninput="updateSlider('kvm')">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Grundareal (m²)</label>
+        <div class="range-row"><span id="lbl-mingrund">0 m²</span><span id="lbl-maxgrund">10.000+ m²</span></div>
+        <div class="dual-range">
+          <input type="range" id="slider-mingrund" min="0" max="10000" step="100" value="0" oninput="updateSlider('grund')">
+          <input type="range" id="slider-maxgrund" min="0" max="10000" step="100" value="10000" oninput="updateSlider('grund')">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Liggetid (dage)</label>
+        <div class="range-row"><span id="lbl-minlig">0 dage</span><span id="lbl-maxlig">365+ dage</span></div>
+        <div class="dual-range">
+          <input type="range" id="slider-minlig" min="0" max="365" step="7" value="0" oninput="updateSlider('lig')">
+          <input type="range" id="slider-maxlig" min="0" max="365" step="7" value="365" oninput="updateSlider('lig')">
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#888;text-align:center" id="filter-result-info"></div>
+    </div>
+
+    <!-- Tab: Byer -->
+    <div id="panel-byer" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+      <div style="padding:10px 12px;border-bottom:1px solid #eee">
+        <input id="by-soeg" type="text" placeholder="Søg kommune eller by..." oninput="tegn()"
+          style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none">
+        <div style="display:flex;gap:12px;margin-top:6px;font-size:12px;color:#1a5276">
+          <a style="cursor:pointer;text-decoration:underline" onclick="selectAlleBy(true)">Vælg alle</a>
+          <a style="cursor:pointer;text-decoration:underline" onclick="selectAlleBy(false)">Fravælg alle</a>
+          <span id="by-info" style="margin-left:auto;color:#888"></span>
+        </div>
+      </div>
+      <div style="overflow-y:auto;flex:1">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead style="position:sticky;top:0;z-index:1">
+            <tr>
+              <th style="width:32px;background:#f0f4f8;padding:6px;border-bottom:2px solid #ddd;text-align:center">✓</th>
+              <th id="bth-navn" onclick="bySort('navn')" style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:left">Kommune</th>
+              <th id="bth-bef" onclick="bySort('bef')" style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:right">Indb.</th>
+              <th id="bth-boliger" onclick="bySort('boliger')" style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:right">Boliger</th>
+            </tr>
+          </thead>
+          <tbody id="by-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -796,6 +905,10 @@ function buildMarker(b, idx) {{
           <td style="font-weight:600">${{b.energi && b.energi !== "-" ? b.energi : "–"}}</td>
         </tr>
         <tr>
+          <td style="color:#888;padding:2px 6px 2px 0">Liggetid</td>
+          <td style="font-weight:600">${{b.liggetid ? b.liggetid + " dage" : "–"}}</td>
+        </tr>
+        <tr>
           <td style="color:#888;padding:4px 6px 2px 0">Afstand til kyst</td>
           <td style="font-weight:600;color:#c0392b">🌊 ${{b.afstand}} m</td>
         </tr>
@@ -805,6 +918,7 @@ function buildMarker(b, idx) {{
       ${{b.bfeNr ? `<a class="popup-link" style="margin-top:6px;background:#1a6b3a" href="https://www.matriklen.dk/#/kort/sfe/${{b.bfeNr}}" target="_blank">🗺 Matrikel →</a>` : ""}}
       ${{b.bfeNr ? `<a class="popup-link" style="margin-top:6px;background:#7d3c98" href="https://www.ois.dk/search/${{b.bfeNr}}" target="_blank">📋 OIS →</a>` : ""}}
       <a class="popup-link" style="margin-top:6px;background:#1a4a6b" href="https://www.tinglysning.dk/tmv/forespoergul" target="_blank">⚖️ Tinglysning →</a>
+      ${{b.dingeo ? `<a class="popup-link" style="margin-top:6px;background:#2e7d32" href="${{b.dingeo}}" target="_blank">📍 Dingeo →</a>` : ""}}
     </div>`;
 
   m.bindPopup(popupHtml, {{maxWidth: 280}});
@@ -841,9 +955,17 @@ function buildCard(b, idx) {{
             <td style="color:#888;padding:2px 0">Energimærke</td>
           </tr>
           <tr>
-            <td style="font-weight:600;padding:0 4px 0 0">${{b.vaerelser || "–"}}</td>
-            <td style="font-weight:600;padding:0 4px">${{b.byggeaar || "–"}}</td>
-            <td style="font-weight:600;padding:0">${{b.energi && b.energi !== "-" ? b.energi : "–"}}</td>
+            <td style="font-weight:600;padding:0 4px 4px 0">${{b.vaerelser || "–"}}</td>
+            <td style="font-weight:600;padding:0 4px 4px">${{b.byggeaar || "–"}}</td>
+            <td style="font-weight:600;padding:0 0 4px">${{b.energi && b.energi !== "-" ? b.energi : "–"}}</td>
+          </tr>
+          <tr>
+            <td style="color:#888;padding:2px 4px 2px 0" colspan="2">Liggetid</td>
+            <td style="color:#888;padding:2px 0">På markedet</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;padding:0 4px 0 0" colspan="2">${{b.liggetid ? b.liggetid + " dage" : "–"}}</td>
+            <td style="font-weight:600;padding:0">${{b.liggetid > 180 ? "⚠ Længe" : b.liggetid > 90 ? "Middel" : "Ny"}}</td>
           </tr>
         </table>
         ${{afstandBadge(b.afstand)}}
@@ -852,6 +974,7 @@ function buildCard(b, idx) {{
           ${{b.bfeNr ? `<a href="https://www.matriklen.dk/#/kort/sfe/${{b.bfeNr}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#1a6b3a;text-decoration:none;font-weight:600;border:1px solid #1a6b3a;border-radius:4px;padding:2px 6px">🗺 Matrikel</a>` : ""}}
           ${{b.bfeNr ? `<a href="https://www.ois.dk/search/${{b.bfeNr}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#7d3c98;text-decoration:none;font-weight:600;border:1px solid #7d3c98;border-radius:4px;padding:2px 6px">📋 OIS</a>` : ""}}
           <a href="https://www.tinglysning.dk/tmv/forespoergul" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#1a4a6b;text-decoration:none;font-weight:600;border:1px solid #1a4a6b;border-radius:4px;padding:2px 6px">⚖️ Tinglysning</a>
+          ${{b.dingeo ? `<a href="${{b.dingeo}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#2e7d32;text-decoration:none;font-weight:600;border:1px solid #2e7d32;border-radius:4px;padding:2px 6px">📍 Dingeo</a>` : ""}}
         </div>
       </div>
     </a>`;
@@ -875,6 +998,63 @@ function unhighlightMarker(idx) {{
 
 let visibleBoliger = BOLIGER;
 
+function toggleFilterPanel() {{
+  const p = document.getElementById("filter-panel");
+  const sidebar = document.getElementById("sidebar");
+  const isOpen = p.style.display !== "none";
+  p.style.display = isOpen ? "none" : "flex";
+  // Flyt sidebar ned hvis panel er åbent
+  sidebar.style.top = (!isOpen) ? (48 + p.offsetHeight) + "px" : "48px";
+  document.getElementById("filter-btn").textContent = isOpen ? "Filtre ▾" : "Filtre ▴";
+}}
+
+function fmtPrisLbl(v) {{
+  if (v >= 1000000) return (v/1000000).toFixed(v % 1000000 === 0 ? 0 : 1) + " mio.";
+  if (v >= 1000) return Math.round(v/1000) + " t.";
+  return v + " kr.";
+}}
+
+function updateSlider(type) {{
+  if (type === 'pris') {{
+    let min = parseInt(document.getElementById("slider-minpris").value);
+    let max = parseInt(document.getElementById("slider-maxpris").value);
+    if (min > max) {{ document.getElementById("slider-minpris").value = max; min = max; }}
+    document.getElementById("lbl-minpris").textContent = fmtPrisLbl(min);
+    document.getElementById("lbl-maxpris").textContent = max >= 40000000 ? "40+ mio." : fmtPrisLbl(max);
+  }} else if (type === 'kvm') {{
+    let min = parseInt(document.getElementById("slider-minkvm").value);
+    let max = parseInt(document.getElementById("slider-maxkvm").value);
+    if (min > max) {{ document.getElementById("slider-minkvm").value = max; min = max; }}
+    document.getElementById("lbl-minkvm").textContent = min + " m²";
+    document.getElementById("lbl-maxkvm").textContent = max >= 500 ? "500+ m²" : max + " m²";
+  }} else if (type === 'grund') {{
+    let min = parseInt(document.getElementById("slider-mingrund").value);
+    let max = parseInt(document.getElementById("slider-maxgrund").value);
+    if (min > max) {{ document.getElementById("slider-mingrund").value = max; min = max; }}
+    document.getElementById("lbl-mingrund").textContent = min.toLocaleString("da-DK") + " m²";
+    document.getElementById("lbl-maxgrund").textContent = max >= 10000 ? "10.000+ m²" : max.toLocaleString("da-DK") + " m²";
+  }} else if (type === 'lig') {{
+    let min = parseInt(document.getElementById("slider-minlig").value);
+    let max = parseInt(document.getElementById("slider-maxlig").value);
+    if (min > max) {{ document.getElementById("slider-minlig").value = max; min = max; }}
+    document.getElementById("lbl-minlig").textContent = min + " dage";
+    document.getElementById("lbl-maxlig").textContent = max >= 365 ? "365+ dage" : max + " dage";
+  }}
+  applyFilters();
+}}
+
+function nulstilFiltre() {{
+  document.getElementById("slider-minpris").value = 0;
+  document.getElementById("slider-maxpris").value = 40000000;
+  document.getElementById("slider-minkvm").value = 0;
+  document.getElementById("slider-maxkvm").value = 500;
+  document.getElementById("slider-mingrund").value = 0;
+  document.getElementById("slider-maxgrund").value = 10000;
+  document.getElementById("slider-minlig").value = 0;
+  document.getElementById("slider-maxlig").value = 365;
+  ['pris','kvm','grund','lig'].forEach(updateSlider);
+}}
+
 function toggleTypeMenu() {{
   const m = document.getElementById("type-menu");
   m.style.display = m.style.display === "none" ? "block" : "none";
@@ -890,20 +1070,34 @@ document.addEventListener("click", function(e) {{
 function applyFilters() {{
   const checkedTypes = Array.from(document.querySelectorAll("#type-menu input:checked")).map(i => i.value);
   const afstand   = parseInt(document.getElementById("filter-afstand").value);
-  const minpris   = parseInt(document.getElementById("filter-minpris").value)   || 0;
-  const maxpris   = parseInt(document.getElementById("filter-maxpris").value)   || Infinity;
-  const minkvm    = parseInt(document.getElementById("filter-minkvm").value)    || 0;
-  const maxkvm    = parseInt(document.getElementById("filter-maxkvm").value)    || Infinity;
-  const mingrund  = parseInt(document.getElementById("filter-mingrund").value)  || 0;
-  const maxgrund  = parseInt(document.getElementById("filter-maxgrund").value)  || Infinity;
+  const minpris   = parseInt(document.getElementById("slider-minpris")?.value)  || 0;
+  const maxpris   = parseInt(document.getElementById("slider-maxpris")?.value)  || 40000000;
+  const minkvm    = parseInt(document.getElementById("slider-minkvm")?.value)   || 0;
+  const maxkvm    = parseInt(document.getElementById("slider-maxkvm")?.value)   || 500;
+  const mingrund  = parseInt(document.getElementById("slider-mingrund")?.value) || 0;
+  const maxgrund  = parseInt(document.getElementById("slider-maxgrund")?.value) || 10000;
+  const minlig    = parseInt(document.getElementById("slider-minlig")?.value)   || 0;
+  const maxlig    = parseInt(document.getElementById("slider-maxlig")?.value)   || 365;
+  const maxPrisEffektiv  = maxpris  >= 40000000 ? Infinity : maxpris;
+  const maxKvmEffektiv   = maxkvm   >= 500      ? Infinity : maxkvm;
+  const maxGrundEffektiv = maxgrund >= 10000    ? Infinity : maxgrund;
+  const maxLigEffektiv   = maxlig   >= 365      ? Infinity : maxlig;
+
+  // Hent ekskluderede postnumre fra filtersiden (localStorage)
+  const ekskl = new Set(JSON.parse(localStorage.getItem('vb_ekskl_pnr') || '[]').map(String));
 
   visibleBoliger = BOLIGER.filter(b =>
     (checkedTypes.length === 0 || checkedTypes.includes(b.type)) &&
     b.afstand <= afstand &&
-    (b.pris === 0 || (b.pris >= minpris && b.pris <= maxpris)) &&
-    (b.kvm === 0 || (b.kvm >= minkvm && b.kvm <= maxkvm)) &&
-    (b.grundkvm === 0 || (b.grundkvm >= mingrund && b.grundkvm <= maxgrund))
+    (b.pris === 0 || (b.pris >= minpris && b.pris <= maxPrisEffektiv)) &&
+    (b.kvm === 0   || (b.kvm >= minkvm   && b.kvm <= maxKvmEffektiv)) &&
+    (b.grundkvm === 0 || (b.grundkvm >= mingrund && b.grundkvm <= maxGrundEffektiv)) &&
+    (b.liggetid === 0 || (b.liggetid >= minlig && b.liggetid <= maxLigEffektiv)) &&
+    !ekskl.has(String(b.pnr))
   );
+  
+  const info = document.getElementById("filter-result-info");
+  if (info) info.textContent = visibleBoliger.length + " boliger matcher filtrene";
 
   // Opdater knap-tekst
   const btn = document.getElementById("type-btn");
@@ -954,6 +1148,181 @@ function renderSidebarChunk(sorted, start) {{
 }}
 
 render();
+
+// ─── KOMMUNEDATA (98 kommuner, befolkning 2025) ───
+const KOMMUNER = [
+  {{navn:"Københavns Kommune",bef:672000,pnr:["1000","1050","1051","1052","1053","1100","1150","1200","1250","1300","1350","1400","1450","1500","1550","1600","1650","1700","1800","1850","1900","2000","2100","2200","2300","2400","2450","2500"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Frederiksberg",bef:106000,pnr:["2000"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Gentofte",bef:76000,pnr:["2820","2830","2840","2900"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Gladsaxe",bef:70000,pnr:["2860","2880"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Lyngby-Taarbæk",bef:57000,pnr:["2800"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Herlev",bef:30000,pnr:["2730"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Ballerup",bef:48000,pnr:["2750"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Rødovre",bef:39000,pnr:["2610"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Hvidovre",bef:53000,pnr:["2650"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Tårnby",bef:43000,pnr:["2770"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Dragør",bef:14000,pnr:["2791"],gruppe:"Storkøbenhavn"}},
+  {{navn:"Helsingør",bef:64000,pnr:["3000","3050","3060","3070","3080","3100"],gruppe:"Nordsjælland"}},
+  {{navn:"Hillerød",bef:51000,pnr:["3400","3450","3480","3490"],gruppe:"Nordsjælland"}},
+  {{navn:"Frederikssund",bef:54000,pnr:["3600","3630","3650","3670"],gruppe:"Nordsjælland"}},
+  {{navn:"Halsnæs",bef:31000,pnr:["3300","3310","3320","3330","3390"],gruppe:"Nordsjælland"}},
+  {{navn:"Gribskov",bef:41000,pnr:["3200","3210","3220","3230","3250","3280"],gruppe:"Nordsjælland"}},
+  {{navn:"Fredensborg",bef:40000,pnr:["2990","3480","3490"],gruppe:"Nordsjælland"}},
+  {{navn:"Aarhus Kommune",bef:354000,pnr:["8000","8200","8210","8220","8230","8240","8250","8260","8270","8310","8320","8330","8361","8362","8380"],gruppe:"Aarhus"}},
+  {{navn:"Odder",bef:23000,pnr:["8300","8350","8370","8380"],gruppe:"Aarhus"}},
+  {{navn:"Skanderborg",bef:60000,pnr:["8660","8670","8680"],gruppe:"Aarhus"}},
+  {{navn:"Odense Kommune",bef:205000,pnr:["5000","5200","5210","5220","5230","5240","5250","5260","5270","5290"],gruppe:"Odense"}},
+  {{navn:"Kerteminde",bef:24000,pnr:["5300","5310","5320","5330"],gruppe:"Odense"}},
+  {{navn:"Nordfyn",bef:29000,pnr:["5400","5450","5456","5462","5471","5474","5485","5491","5492"],gruppe:"Odense"}},
+  {{navn:"Aalborg Kommune",bef:217000,pnr:["9000","9200","9210","9220","9230","9240","9260","9270","9280","9290"],gruppe:"Aalborg"}},
+  {{navn:"Rebild",bef:30000,pnr:["9500","9520","9530","9541","9574","9575"],gruppe:"Aalborg"}},
+  {{navn:"Esbjerg Kommune",bef:117000,pnr:["6700","6705","6710","6715","6720","6731","6740","6752","6753","6760","6771"],gruppe:"Esbjerg"}},
+  {{navn:"Fanø",bef:3400,pnr:["6720"],gruppe:"Esbjerg"}},
+  {{navn:"Varde",bef:50000,pnr:["6800","6818","6823","6830","6840","6851","6870","6880"],gruppe:"Esbjerg"}},
+  {{navn:"Randers Kommune",bef:97000,pnr:["8900","8920","8930","8940","8950","8960","8981","8983","8990"],gruppe:"Randers"}},
+  {{navn:"Vejle Kommune",bef:120000,pnr:["7100","7120","7130","7140","7150","7160","7171","7173","7182","7183","7184"],gruppe:"Vejle"}},
+  {{navn:"Fredericia",bef:51000,pnr:["7000","7007"],gruppe:"Vejle"}},
+  {{navn:"Kolding Kommune",bef:94000,pnr:["6000","6040","6051","6052","6064","6070","6091","6092","6093","6094","6095"],gruppe:"Kolding"}},
+  {{navn:"Horsens Kommune",bef:90000,pnr:["8700","8721","8722","8723","8732","8740","8751","8752","8762","8763","8781","8783"],gruppe:"Horsens"}},
+  {{navn:"Silkeborg",bef:94000,pnr:["8600","8620","8632","8641","8643","8653","8654","8660"],gruppe:"Midtjylland"}},
+  {{navn:"Viborg",bef:98000,pnr:["8800","8830","8850","8860","8870","8881","8882","8883"],gruppe:"Midtjylland"}},
+  {{navn:"Herning",bef:89000,pnr:["7400","7430","7441","7442","7451","7480","7490"],gruppe:"Midtjylland"}},
+  {{navn:"Ringkøbing-Skjern",bef:59000,pnr:["6900","6920","6933","6940","6950","6960","6971","6980","6990"],gruppe:"Midtjylland"}},
+  {{navn:"Holstebro",bef:58000,pnr:["7500","7540","7550","7560","7570","7600"],gruppe:"Midtjylland"}},
+  {{navn:"Skive",bef:46000,pnr:["7800","7830","7840","7850","7860","7870","7884"],gruppe:"Midtjylland"}},
+  {{navn:"Norddjurs",bef:37000,pnr:["8500","8550","8560","8570","8581","8585","8586","8592"],gruppe:"Østjylland"}},
+  {{navn:"Syddjurs",bef:44000,pnr:["8400","8410","8420","8444","8450","8462","8464","8471","8472"],gruppe:"Østjylland"}},
+  {{navn:"Frederikshavn",bef:59000,pnr:["9900","9940","9950","9970","9981","9982","9990"],gruppe:"Nordjylland"}},
+  {{navn:"Hjørring",bef:63000,pnr:["9800","9830","9850","9870","9881"],gruppe:"Nordjylland"}},
+  {{navn:"Thisted",bef:43000,pnr:["7700","7730","7741","7742","7752","7755","7760","7770","7790"],gruppe:"Nordjylland"}},
+  {{navn:"Morsø",bef:20000,pnr:["7900","7950","7960","7970","7980","7990"],gruppe:"Nordjylland"}},
+  {{navn:"Jammerbugt",bef:38000,pnr:["9440","9460","9480","9490","9493"],gruppe:"Nordjylland"}},
+  {{navn:"Vesthimmerland",bef:37000,pnr:["9600","9620","9631","9632","9640","9670","9681","9690"],gruppe:"Nordjylland"}},
+  {{navn:"Brønderslev",bef:35000,pnr:["9700","9750","9760"],gruppe:"Nordjylland"}},
+  {{navn:"Svendborg",bef:59000,pnr:["5700","5750","5762","5771","5772","5792"],gruppe:"Fyn"}},
+  {{navn:"Nyborg",bef:32000,pnr:["5800","5853","5854","5856","5871","5874","5881","5882","5883","5884","5892"],gruppe:"Fyn"}},
+  {{navn:"Assens",bef:40000,pnr:["5560","5580","5591","5592","5600","5610","5620","5631","5642","5672"],gruppe:"Fyn"}},
+  {{navn:"Faaborg-Midtfyn",bef:51000,pnr:["5540","5550","5683","5690"],gruppe:"Fyn"}},
+  {{navn:"Middelfart",bef:38000,pnr:["5466","5491","5500","5540"],gruppe:"Fyn"}},
+  {{navn:"Langeland",bef:12000,pnr:["5900","5935","5953","5960","5970","5985"],gruppe:"Fyn"}},
+  {{navn:"Ærø",bef:6300,pnr:["5960","5970","5985"],gruppe:"Fyn"}},
+  {{navn:"Næstved",bef:82000,pnr:["4690","4700","4720","4733","4736","4750","4760","4771","4772","4773","4780"],gruppe:"Sydsjælland"}},
+  {{navn:"Vordingborg",bef:44000,pnr:["4760","4771","4772","4773","4780","4800","4840","4850"],gruppe:"Sydsjælland"}},
+  {{navn:"Guldborgsund",bef:61000,pnr:["4800","4840","4850","4862","4863","4871","4872","4873","4874","4880","4891","4892","4900","4930","4941","4943","4944","4952","4953","4960","4970","4983","4990"],gruppe:"Sydsjælland"}},
+  {{navn:"Lolland",bef:44000,pnr:["4900","4912","4913","4930","4941","4943","4944","4952","4953","4960","4970","4983","4990"],gruppe:"Sydsjælland"}},
+  {{navn:"Bornholm",bef:40000,pnr:["3700","3720","3730","3740","3751","3760","3782","3790"],gruppe:"Bornholm"}},
+  {{navn:"Kalundborg",bef:48000,pnr:["4400","4420","4440","4450","4460","4470","4480","4490"],gruppe:"Vestsjælland"}},
+  {{navn:"Holbæk",bef:71000,pnr:["4300","4320","4330","4340","4350","4360","4370","4390"],gruppe:"Vestsjælland"}},
+  {{navn:"Slagelse",bef:77000,pnr:["4200","4220","4230","4241","4242","4250","4261","4262","4270","4281","4291"],gruppe:"Vestsjælland"}},
+  {{navn:"Odsherred",bef:32000,pnr:["4500","4520","4532","4534","4540","4550","4560","4571","4572","4573","4581","4583","4591","4592","4593"],gruppe:"Vestsjælland"}},
+  {{navn:"Aabenraa",bef:59000,pnr:["6200","6230","6240","6261","6270","6280","6300","6310","6318","6320","6330","6340","6360"],gruppe:"Sønderjylland"}},
+  {{navn:"Sønderborg",bef:74000,pnr:["6400","6430","6440","6470","6510","6534","6535","6541","6580","6600"],gruppe:"Sønderjylland"}},
+  {{navn:"Tønder",bef:37000,pnr:["6240","6261","6270","6280","6300","6310","6318","6320","6330","6340","6360","6372","6376"],gruppe:"Sønderjylland"}},
+  {{navn:"Haderslev",bef:55000,pnr:["6100","6200","6230","6240"],gruppe:"Sønderjylland"}},
+];
+
+// Tæl boliger pr kommuner fra BOLIGER
+function antalBoligerKom(kom) {{
+  return BOLIGER.filter(b => kom.pnr.includes(String(b.pnr))).length;
+}}
+
+let ekskluderede = new Set(JSON.parse(localStorage.getItem('vb_ekskl_pnr') || '[]').map(String));
+let bySortKol = 'bef', bySortDir = 'desc';
+
+function skiftTab(tab) {{
+  document.getElementById('panel-filtre').style.display = tab === 'filtre' ? 'block' : 'none';
+  document.getElementById('panel-byer').style.display   = tab === 'byer'   ? 'flex' : 'none';
+  document.getElementById('tab-filtre').style.color = tab === 'filtre' ? '#1a5276' : '#999';
+  document.getElementById('tab-filtre').style.borderBottom = tab === 'filtre' ? '2px solid #1a5276' : 'none';
+  document.getElementById('tab-byer').style.color   = tab === 'byer'   ? '#1a5276' : '#999';
+  document.getElementById('tab-byer').style.borderBottom   = tab === 'byer'   ? '2px solid #1a5276' : 'none';
+  if (tab === 'byer') tegn();
+}}
+
+function erEkskl(kom) {{
+  return kom.pnr.length > 0 && kom.pnr.every(p => ekskluderede.has(p));
+}}
+
+function bySort(kol) {{
+  bySortDir = bySortKol === kol ? (bySortDir === 'asc' ? 'desc' : 'asc') : (kol === 'bef' || kol === 'boliger' ? 'desc' : 'asc');
+  bySortKol = kol;
+  tegn();
+}}
+
+function tegn() {{
+  const soeg = (document.getElementById('by-soeg')?.value || '').toLowerCase();
+  const grupper = {{}};
+  KOMMUNER
+    .filter(k => !soeg || k.navn.toLowerCase().includes(soeg) || k.gruppe.toLowerCase().includes(soeg))
+    .forEach(k => {{ if (!grupper[k.gruppe]) grupper[k.gruppe] = []; grupper[k.gruppe].push(k); }});
+
+  // Sorter kommuner inden for hver gruppe
+  Object.values(grupper).forEach(arr => arr.sort((a, b) => {{
+    const va = bySortKol === 'navn' ? a.navn : bySortKol === 'bef' ? a.bef : antalBoligerKom(a);
+    const vb = bySortKol === 'navn' ? b.navn : bySortKol === 'bef' ? b.bef : antalBoligerKom(b);
+    return bySortDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  }}));
+
+  let html = '';
+  Object.entries(grupper).forEach(([g, arr]) => {{
+    const alleEkskl = arr.every(k => erEkskl(k));
+    html += `<tr style="background:#edf2f7;cursor:pointer" onclick="toggleGruppe('${{g}}')">
+      <td style="text-align:center;padding:5px">
+        <input type="checkbox" ${{alleEkskl ? '' : 'checked'}} onclick="event.stopPropagation();toggleGruppe('${{g}}')" style="accent-color:#1a5276">
+      </td>
+      <td colspan="3" style="padding:5px 8px;font-weight:700;font-size:11px;color:#2c5282;letter-spacing:.3px">
+        ${{g}} <span style="font-weight:400;color:#666">(${{arr.length}})</span>
+      </td>
+    </tr>`;
+    arr.forEach(k => {{
+      const ekskl = erEkskl(k);
+      const boliger = antalBoligerKom(k);
+      html += `<tr style="opacity:${{ekskl ? 0.4 : 1}}">
+        <td style="text-align:center;padding:4px">
+          <input type="checkbox" ${{ekskl ? '' : 'checked'}} data-pnr="${{k.pnr.join(',')}}"
+            onchange="toggleKom(this)" style="accent-color:#1a5276">
+        </td>
+        <td style="padding:4px 8px">${{k.navn}}</td>
+        <td style="padding:4px 8px;text-align:right;color:#888">${{k.bef.toLocaleString('da-DK')}}</td>
+        <td style="padding:4px 8px;text-align:right">
+          ${{boliger > 0 ? `<span style="background:#e8f4fd;color:#1a5276;border-radius:8px;padding:1px 6px;font-size:11px;font-weight:600">${{boliger}}</span>` : '–'}}
+        </td>
+      </tr>`;
+    }});
+  }});
+
+  document.getElementById('by-tbody').innerHTML = html;
+  opdaterByBadge();
+}}
+
+function toggleKom(cb) {{
+  cb.dataset.pnr.split(',').forEach(p => ekskluderede[cb.checked ? 'delete' : 'add'](p));
+  localStorage.setItem('vb_ekskl_pnr', JSON.stringify([...ekskluderede]));
+  tegn(); applyFilters();
+}}
+
+function toggleGruppe(gruppe) {{
+  const arr = KOMMUNER.filter(k => k.gruppe === gruppe);
+  const alleEkskl = arr.every(k => erEkskl(k));
+  arr.forEach(k => k.pnr.forEach(p => ekskluderede[alleEkskl ? 'delete' : 'add'](p)));
+  localStorage.setItem('vb_ekskl_pnr', JSON.stringify([...ekskluderede]));
+  tegn(); applyFilters();
+}}
+
+function selectAlleBy(inkl) {{
+  KOMMUNER.forEach(k => k.pnr.forEach(p => ekskluderede[inkl ? 'delete' : 'add'](p)));
+  localStorage.setItem('vb_ekskl_pnr', JSON.stringify([...ekskluderede]));
+  tegn(); applyFilters();
+}}
+
+function opdaterByBadge() {{
+  const n = KOMMUNER.filter(k => erEkskl(k)).length;
+  const badge = document.getElementById('byer-badge');
+  if (n > 0) {{ badge.style.display = 'inline'; badge.textContent = n; }}
+  else badge.style.display = 'none';
+  document.getElementById('by-info').textContent = n > 0 ? `${{n}} ekskluderet` : 'Alle medtaget';
+}}
+
 </script>
 </body>
 </html>"""
@@ -1042,6 +1411,7 @@ def main():
     print("\n[4/4] Gemmer resultater...")
     gem_csv(resultat)
     gem_kort(resultat)
+    gem_boliger_json(resultat)
     
     # Udskriv statistik
     print("\n" + "=" * 60)
