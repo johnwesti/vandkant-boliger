@@ -362,6 +362,12 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
                 if not lat or not lng:
                     continue
                 med_koord += 1
+                # Brug secondaryPropertyType hvis den er mere specifik
+                sek_type = bolig.get("secondaryPropertyType")
+                bolig_type_navn = type_navne.get(sek_type, None) if sek_type and sek_type != 6 else None
+                if not bolig_type_navn:
+                    bolig_type_navn = type_navne.get(bolig_type, str(bolig_type))
+
                 alle_boliger.append({
                     "id":           bolig.get("id", ""),
                     "guid":         bolig.get("guid", ""),
@@ -369,7 +375,7 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
                     "postnummer":   bolig.get("zipCode", ""),
                     "by":           bolig.get("city", ""),
                     "pris":         bolig.get("price", 0),
-                    "type":         type_navne.get(bolig_type, str(bolig_type)),
+                    "type":         bolig_type_navn,
                     "kvm":          bolig.get("size", 0),
                     "grundkvm":     bolig.get("lotSize", 0),
                     "vaerelser":    bolig.get("rooms", 0),
@@ -721,7 +727,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
 
   </div>
   <!-- Filter panel -->
-  <div id="filter-panel" style="display:none;position:fixed;top:48px;right:0;width:360px;background:white;border-left:1px solid #ddd;border-bottom:1px solid #ddd;border-radius:0 0 0 10px;z-index:999;box-shadow:-4px 4px 16px rgba(0,0,0,.15);display:none;flex-direction:column;max-height:calc(100vh - 48px)">
+  <div id="filter-panel" style="display:none;position:fixed;top:48px;right:380px;width:420px;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 0 10px;z-index:999;box-shadow:-4px 4px 16px rgba(0,0,0,.15);flex-direction:column;max-height:calc(100vh - 48px)">
 
     <!-- Faner -->
     <div style="display:flex;border-bottom:2px solid #eee">
@@ -784,6 +790,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
             <tr>
               <th style="width:32px;background:#f0f4f8;padding:6px;border-bottom:2px solid #ddd;text-align:center">✓</th>
               <th id="bth-navn" onclick="bySort('navn')" style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:left">Kommune</th>
+              <th style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;text-align:left;color:#999;font-weight:400">Postnr</th>
               <th id="bth-bef" onclick="bySort('bef')" style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:right">Indb.</th>
               <th id="bth-boliger" onclick="bySort('boliger')" style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:right">Boliger</th>
             </tr>
@@ -1000,11 +1007,8 @@ let visibleBoliger = BOLIGER;
 
 function toggleFilterPanel() {{
   const p = document.getElementById("filter-panel");
-  const sidebar = document.getElementById("sidebar");
-  const isOpen = p.style.display !== "none";
+  const isOpen = p.style.display === "flex";
   p.style.display = isOpen ? "none" : "flex";
-  // Flyt sidebar ned hvis panel er åbent
-  sidebar.style.top = (!isOpen) ? (48 + p.offsetHeight) + "px" : "48px";
   document.getElementById("filter-btn").textContent = isOpen ? "Filtre ▾" : "Filtre ▴";
 }}
 
@@ -1282,7 +1286,8 @@ function tegn() {{
           <input type="checkbox" ${{ekskl ? '' : 'checked'}} data-pnr="${{k.pnr.join(',')}}"
             onchange="toggleKom(this)" style="accent-color:#1a5276">
         </td>
-        <td style="padding:4px 8px">${{k.navn}}</td>
+        <td style="padding:4px 8px;font-weight:500">${{k.navn}}</td>
+        <td style="padding:4px 8px;color:#888;font-size:11px">${{k.pnr.slice(0,3).join(', ')}}${{k.pnr.length > 3 ? '…' : ''}}</td>
         <td style="padding:4px 8px;text-align:right;color:#888">${{k.bef.toLocaleString('da-DK')}}</td>
         <td style="padding:4px 8px;text-align:right">
           ${{boliger > 0 ? `<span style="background:#e8f4fd;color:#1a5276;border-radius:8px;padding:1px 6px;font-size:11px;font-weight:600">${{boliger}}</span>` : '–'}}
