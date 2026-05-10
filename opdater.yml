@@ -5,6 +5,15 @@ on:
     - cron: '0 4 * * *'
     - cron: '0 16 * * *'
   workflow_dispatch:
+    inputs:
+      hent_boliger:
+        description: 'Hent nye boligdata fra Boliga'
+        type: boolean
+        default: true
+      hent_kyst:
+        description: 'Hent kystlinje fra OpenStreetMap'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -32,13 +41,23 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run script
-        run: python vandkant_boliger.py
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.hent_boliger }}" != "true" ]; then
+            ARGS="$ARGS --ingen-boliger"
+          fi
+          if [ "${{ github.event.inputs.hent_kyst }}" = "true" ]; then
+            ARGS="$ARGS --refresh kyst"
+          fi
+          python vandkant_boliger.py $ARGS
 
       - name: Copy to docs
         run: |
           mkdir -p docs
           cp vandkant_kort.html docs/index.html
           cp vandkant_boliger.csv docs/vandkant_boliger.csv
+          cp boliger.json docs/boliger.json
+          cp filter.html docs/filter.html
 
       - name: Commit and push
         run: |

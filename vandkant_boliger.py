@@ -1347,11 +1347,17 @@ def main():
                         help="Tving genhentning: 'alle', 'boliger' eller 'kyst'")
     parser.add_argument("--afstand", type=int, default=None,
                         help=f"Max afstand til kyst i meter (default: {MAX_AFSTAND_METER})")
+    parser.add_argument("--ingen-boliger", action="store_true",
+                        help="Spring boligdata over – brug cache eller eksisterende CSV")
     args = parser.parse_args()
 
     if args.afstand is not None:
         MAX_AFSTAND_METER = args.afstand
         print(f"  → Afstand overstyret til {MAX_AFSTAND_METER}m via argument")
+
+    if getattr(args, 'ingen_boliger', False):
+        BRUG_CACHE = True
+        print("  → --ingen-boliger: springer boligdata over, bruger cache")
 
     # Slet cache-filer hvis --refresh er angivet
     if args.refresh in ("alle", "kyst"):
