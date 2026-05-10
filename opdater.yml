@@ -64,6 +64,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/
+          # Gem kyst-backup i repo hvis den er ny/opdateret
+          if [ -f kyst_backup.pkl ]; then
+            git add kyst_backup.pkl
+          fi
           git diff --staged --quiet || git commit -m "Auto update $(date '+%Y-%m-%d %H:%M')"
           git pull --rebase origin main
           git push

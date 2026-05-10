@@ -1373,10 +1373,15 @@ def main():
     print("  Ejendomme til salg max 200m fra danske farvande")
     print("=" * 60)
     
-    # 1. Kystlinje (med cache)
+    # 1. Kystlinje (med cache + repo-backup)
+    KYST_BACKUP = "kyst_backup.pkl"
     kyst_gdf = None
     if BRUG_CACHE:
         kyst_gdf = indlæs_cache(CACHE_KYST_FIL)
+    # Fallback: brug repo-backup hvis cache mangler (GitHub Actions uden cache)
+    if kyst_gdf is None and os.path.exists(KYST_BACKUP):
+        print("[1/4] Kystlinje indlæst fra repo-backup ✓")
+        kyst_gdf = indlæs_cache(KYST_BACKUP)
     if kyst_gdf is None:
         kyst_gdf = hent_kystlinje()
         if EKSKLUDER_VESTERHAV:
@@ -1385,6 +1390,9 @@ def main():
             print('    → Vesterhavet medtages')
         if BRUG_CACHE:
             gem_cache(kyst_gdf, CACHE_KYST_FIL)
+        # Gem også som repo-backup så næste CI-kørsel ikke behøver Overpass
+        gem_cache(kyst_gdf, KYST_BACKUP)
+        print(f"    💾 Repo-backup gemt: {KYST_BACKUP} (commit dette til git)")
     else:
         print("[1/4] Kystlinje indlæst fra cache ✓")
 
