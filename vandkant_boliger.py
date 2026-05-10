@@ -371,6 +371,7 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
                     "pris":         bolig.get("price", 0),
                     "type":         type_navne.get(bolig_type, str(bolig_type)),
                     "kvm":          bolig.get("size", 0),
+                    "grundkvm":     bolig.get("lotSize", 0),
                     "vaerelser":    bolig.get("rooms", 0),
                     "byggeaar":     bolig.get("buildYear", ""),
                     "energimaerke": bolig.get("energyClass", ""),
@@ -528,8 +529,9 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
             "pnr":       str(row.get("postnummer", "")),
             "pris":      pris,
             "type":      str(row.get("type", "")),
-            "kvm":       int(row.get("kvm", 0) or 0),
-            "vaerelser": int(row.get("vaerelser", 0) or 0),
+            "kvm":       int(row["kvm"]) if pd.notna(row.get("kvm")) and row.get("kvm") else 0,
+            "grundkvm":  int(row["grundkvm"]) if pd.notna(row.get("grundkvm")) and row.get("grundkvm") else 0,
+            "vaerelser": int(row["vaerelser"]) if pd.notna(row.get("vaerelser")) and row.get("vaerelser") else 0,
             "byggeaar":  str(row.get("byggeaar", "") or ""),
             "energi":    str(row.get("energimaerke", "") or ""),
             "afstand":   float(row["afstand_m"]),
@@ -667,34 +669,21 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
       <button id="type-btn" onclick="toggleTypeMenu()" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
         Boligtype ▾
       </button>
-      <div id="type-menu" style="display:none;position:absolute;top:34px;left:0;background:white;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:8px;z-index:2000;min-width:160px">
-        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
-          <input type="checkbox" value="Villa/Parcelhus" checked onchange="applyFilters()"> Villa/Parcelhus
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
-          <input type="checkbox" value="Fritidshus" checked onchange="applyFilters()"> Fritidshus
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
-          <input type="checkbox" value="Landejendom" checked onchange="applyFilters()"> Landejendom
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
-          <input type="checkbox" value="Helårsgrund" checked onchange="applyFilters()"> Helårsgrund
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
-          <input type="checkbox" value="Fritidsgrund" checked onchange="applyFilters()"> Fritidsgrund
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''">
-          <input type="checkbox" value="Tvangsauktion" checked onchange="applyFilters()"> Tvangsauktion
-        </label>
+      <div id="type-menu" style="display:none;position:absolute;top:34px;left:0;background:white;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:8px;z-index:2000;min-width:180px">
+        <div id="type-checkboxes"></div>
       </div>
     </div>
-    <select id="filter-afstand" onchange="applyFilters()">
+    <select id="filter-afstand" onchange="applyFilters()" title="Max afstand til kyst">
       <option value="200">Max 200m</option>
       <option value="75">Max 75m</option>
-      <option value="30">Max 30m (vandkant)</option>
+      <option value="30">Max 30m</option>
     </select>
-    <input type="number" id="filter-maxpris" placeholder="Max pris (kr)" 
-           onchange="applyFilters()" style="width:140px">
+    <input type="number" id="filter-minpris" placeholder="Min pris" onchange="applyFilters()" style="width:100px" title="Min pris (kr)">
+    <input type="number" id="filter-maxpris" placeholder="Max pris" onchange="applyFilters()" style="width:100px" title="Max pris (kr)">
+    <input type="number" id="filter-minkvm" placeholder="Min m²" onchange="applyFilters()" style="width:75px" title="Min boligareal (m²)">
+    <input type="number" id="filter-maxkvm" placeholder="Max m²" onchange="applyFilters()" style="width:75px" title="Max boligareal (m²)">
+    <input type="number" id="filter-mingrund" placeholder="Min grund" onchange="applyFilters()" style="width:90px" title="Min grundstørrelse (m²)">
+    <input type="number" id="filter-maxgrund" placeholder="Max grund" onchange="applyFilters()" style="width:90px" title="Max grundstørrelse (m²)">
   </div>
 </div>
 
@@ -706,6 +695,24 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
 
 <script>
 const BOLIGER = {data_js};
+
+// Byg type-dropdown dynamisk fra data
+const alleTyper = [...new Set(BOLIGER.map(b => b.type))].sort();
+const typeContainer = document.getElementById("type-checkboxes");
+alleTyper.forEach(type => {{
+  const label = document.createElement("label");
+  label.style.cssText = "display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;color:#333;font-size:13px;border-radius:4px";
+  label.onmouseover = () => label.style.background = "#f0f7ff";
+  label.onmouseout  = () => label.style.background = "";
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.value = type;
+  cb.checked = true;
+  cb.onchange = applyFilters;
+  label.appendChild(cb);
+  label.appendChild(document.createTextNode(" " + type));
+  typeContainer.appendChild(label);
+}});
 
 // Formater pris
 function fmtPris(p) {{
@@ -763,11 +770,36 @@ function buildMarker(b, idx) {{
     <div class="popup-inner">
       <div class="popup-pris">${{fmtPris(b.pris)}}</div>
       <div class="popup-adresse"><b>${{b.adresse}}</b><br>${{b.pnr}} ${{b.by}}</div>
-      <div class="popup-meta">
-        ${{b.kvm ? b.kvm + " m²" : ""}}${{b.vaerelser ? " · " + b.vaerelser + " vær." : ""}}${{b.byggeaar ? " · Bygget " + b.byggeaar : ""}}<br>
-        ${{b.type}}<br>
-        🌊 <b>${{b.afstand}} m fra kyst</b>
-      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin:6px 0">
+        <tr>
+          <td style="color:#888;padding:2px 6px 2px 0">Boligtype</td>
+          <td style="font-weight:600">${{b.type || "–"}}</td>
+        </tr>
+        <tr>
+          <td style="color:#888;padding:2px 6px 2px 0">Boligstørrelse</td>
+          <td style="font-weight:600">${{b.kvm ? b.kvm + " m²" : "–"}}</td>
+        </tr>
+        <tr>
+          <td style="color:#888;padding:2px 6px 2px 0">Grundstørrelse</td>
+          <td style="font-weight:600">${{b.grundkvm ? b.grundkvm.toLocaleString("da-DK") + " m²" : "–"}}</td>
+        </tr>
+        <tr>
+          <td style="color:#888;padding:2px 6px 2px 0">Antal værelser</td>
+          <td style="font-weight:600">${{b.vaerelser || "–"}}</td>
+        </tr>
+        <tr>
+          <td style="color:#888;padding:2px 6px 2px 0">Byggeår</td>
+          <td style="font-weight:600">${{b.byggeaar || "–"}}</td>
+        </tr>
+        <tr>
+          <td style="color:#888;padding:2px 6px 2px 0">Energimærke</td>
+          <td style="font-weight:600">${{b.energi && b.energi !== "-" ? b.energi : "–"}}</td>
+        </tr>
+        <tr>
+          <td style="color:#888;padding:4px 6px 2px 0">Afstand til kyst</td>
+          <td style="font-weight:600;color:#c0392b">🌊 ${{b.afstand}} m</td>
+        </tr>
+      </table>
       <a class="popup-link" href="https://www.boliga.dk/adresse/${{b.ouAddress}}-${{b.ouId}}" target="_blank">Se annonce på Boliga →</a>
       <a class="popup-link" style="margin-top:6px;background:#e67e22" href="https://www.boligsiden.dk/adresse/${{b.ouAddress}}" target="_blank">Se annonce på Boligsiden →</a>
       ${{b.bfeNr ? `<a class="popup-link" style="margin-top:6px;background:#1a6b3a" href="https://www.matriklen.dk/#/kort/sfe/${{b.bfeNr}}" target="_blank">🗺 Matrikel →</a>` : ""}}
@@ -792,11 +824,28 @@ function buildCard(b, idx) {{
         <div class="card-pris">${{fmtPris(b.pris)}}</div>
         <div class="card-adresse">${{b.adresse}}</div>
         <div class="card-by">${{b.pnr}} ${{b.by}}</div>
-        <div class="card-meta">
-          ${{b.kvm ? `<span>📐 ${{b.kvm}} m²</span>` : ""}}
-          ${{b.vaerelser ? `<span>🛏 ${{b.vaerelser}} vær.</span>` : ""}}
-          ${{b.byggeaar ? `<span>🏗 ${{b.byggeaar}}</span>` : ""}}
-        </div>
+        <table style="width:100%;margin-top:8px;border-collapse:collapse;font-size:12px">
+          <tr>
+            <td style="color:#888;padding:2px 4px 2px 0">Boligtype</td>
+            <td style="color:#888;padding:2px 4px">Boligstørrelse</td>
+            <td style="color:#888;padding:2px 0">Grundstørrelse</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;padding:0 4px 4px 0">${{b.type || "–"}}</td>
+            <td style="font-weight:600;padding:0 4px 4px">${{b.kvm ? b.kvm + " m²" : "–"}}</td>
+            <td style="font-weight:600;padding:0 0 4px">${{b.grundkvm ? b.grundkvm.toLocaleString("da-DK") + " m²" : "–"}}</td>
+          </tr>
+          <tr>
+            <td style="color:#888;padding:2px 4px 2px 0">Antal værelser</td>
+            <td style="color:#888;padding:2px 4px">Byggeår</td>
+            <td style="color:#888;padding:2px 0">Energimærke</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;padding:0 4px 0 0">${{b.vaerelser || "–"}}</td>
+            <td style="font-weight:600;padding:0 4px">${{b.byggeaar || "–"}}</td>
+            <td style="font-weight:600;padding:0">${{b.energi && b.energi !== "-" ? b.energi : "–"}}</td>
+          </tr>
+        </table>
         ${{afstandBadge(b.afstand)}}
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
           <a href="https://www.boligsiden.dk/adresse/${{b.ouAddress}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#e67e22;text-decoration:none;font-weight:600;border:1px solid #e67e22;border-radius:4px;padding:2px 6px">🏠 Boligsiden</a>
@@ -840,19 +889,26 @@ document.addEventListener("click", function(e) {{
 
 function applyFilters() {{
   const checkedTypes = Array.from(document.querySelectorAll("#type-menu input:checked")).map(i => i.value);
-  const afstand  = parseInt(document.getElementById("filter-afstand").value);
-  const maxpris  = parseInt(document.getElementById("filter-maxpris").value) || Infinity;
+  const afstand   = parseInt(document.getElementById("filter-afstand").value);
+  const minpris   = parseInt(document.getElementById("filter-minpris").value)   || 0;
+  const maxpris   = parseInt(document.getElementById("filter-maxpris").value)   || Infinity;
+  const minkvm    = parseInt(document.getElementById("filter-minkvm").value)    || 0;
+  const maxkvm    = parseInt(document.getElementById("filter-maxkvm").value)    || Infinity;
+  const mingrund  = parseInt(document.getElementById("filter-mingrund").value)  || 0;
+  const maxgrund  = parseInt(document.getElementById("filter-maxgrund").value)  || Infinity;
 
   visibleBoliger = BOLIGER.filter(b =>
     (checkedTypes.length === 0 || checkedTypes.includes(b.type)) &&
     b.afstand <= afstand &&
-    (!maxpris || b.pris <= maxpris || b.pris === 0)
+    (b.pris === 0 || (b.pris >= minpris && b.pris <= maxpris)) &&
+    (b.kvm === 0 || (b.kvm >= minkvm && b.kvm <= maxkvm)) &&
+    (b.grundkvm === 0 || (b.grundkvm >= mingrund && b.grundkvm <= maxgrund))
   );
 
   // Opdater knap-tekst
   const btn = document.getElementById("type-btn");
-  const totalTypes = document.querySelectorAll("#type-menu input").length;
-  btn.textContent = checkedTypes.length === totalTypes ? "Boligtype ▾" : checkedTypes.length + " valgt ▾";
+  const totalTypes = alleTyper.length;
+  btn.textContent = checkedTypes.length === totalTypes ? "Boligtype ▾" : checkedTypes.length + "/" + totalTypes + " ▾";
 
   render();
 }}
