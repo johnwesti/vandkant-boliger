@@ -50,6 +50,8 @@ BOLIG_TYPER = [1, 4, 5]     # 1=Villa, 4=Fritidshus, 5=Grund
 EKSKLUDER_BYER = { ... }     # Byer der filtreres væk
 ```
 
+Den interaktive kortside har nu også et filter for liggetid, så du kan søge efter boliger baseret på, hvor længe de har været på markedet.
+
 ## Automatisk opdatering
 
 Scriptet kører automatisk to gange dagligt — kl. 06:00 og 18:00 dansk tid.

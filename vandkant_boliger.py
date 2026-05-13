@@ -505,7 +505,7 @@ def filtrer_nær_vand(boliger, kyst_gdf, max_afstand=MAX_AFSTAND_METER):
 def gem_csv(gdf, filnavn=OUTPUT_CSV):
     """Gemmer resultater som CSV."""
     kolonner = ["adresse", "postnummer", "by", "pris", "type", "kvm",
-                "vaerelser", "byggeaar", "energimaerke", "afstand_m", "lat", "lng", "url"]
+                "vaerelser", "byggeaar", "energimaerke", "liggetid", "afstand_m", "lat", "lng", "url"]
     
     # Behold kun kolonner der faktisk findes
     kolonner = [k for k in kolonner if k in gdf.columns]
@@ -517,16 +517,17 @@ def gem_csv(gdf, filnavn=OUTPUT_CSV):
 
 
 def gem_boliger_json(gdf, filnavn="boliger.json"):
-    """Gemmer let JSON til filtersiden (by, postnr, pris, type, afstand)."""
+    """Gemmer let JSON til filtersiden (by, postnr, pris, type, afstand og liggetid)."""
     import json as _json
     data = []
     for _, row in gdf.iterrows():
         data.append({
-            "by":  str(row.get("by", "")),
-            "pnr": str(row.get("postnummer", "")),
-            "pris": int(row["pris"]) if pd.notna(row.get("pris")) and row.get("pris") else 0,
-            "type": str(row.get("type", "")),
-            "afstand": float(row["afstand_m"]),
+            "by":       str(row.get("by", "")),
+            "pnr":      str(row.get("postnummer", "")),
+            "pris":     int(row["pris"]) if pd.notna(row.get("pris")) and row.get("pris") else 0,
+            "type":     str(row.get("type", "")),
+            "afstand":  float(row["afstand_m"]),
+            "liggetid": int(row["liggetid"]) if pd.notna(row.get("liggetid")) and row.get("liggetid") else 0,
         })
     with open(filnavn, "w", encoding="utf-8") as f:
         _json.dump(data, f, ensure_ascii=False)
