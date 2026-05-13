@@ -167,6 +167,7 @@ BRUG_CACHE        = True
 CACHE_KYST_FIL    = "cache_kystlinje.pkl"       # Kystlinje (ændrer sig sjældent)
 CACHE_BOLIGER_FIL = "cache_boliger.pkl"          # Boligannoncer
 CACHE_BOLIGER_MAX_ALDER_TIMER = 24               # Genhent boliger hvis cachen er ældre end X timer
+CACHE_VINDM_FIL   = "cache_vindmoeller.pkl"      # Vindmøller (ændrer sig sjældent)
 
 # ─────────────────────────────────────────────
 # CACHE-HJÆLPEFUNKTIONER
@@ -286,6 +287,62 @@ def ekskluder_vesterhav(kyst_gdf):
     fjernet = len(kyst_gdf) - len(filtreret)
     print(f"    ✓ {fjernet} Vesterhav-segmenter fjernet, {len(filtreret)} segmenter tilbage (indre farvande)")
     return filtreret
+
+
+def hent_vindmoeller():
+    """
+    Henter danske vindmøller fra OpenStreetMap via Overpass API.
+    Returnerer en GeoDataFrame med vindmøllepunkter i UTM32N (EPSG:25832).
+    """
+    print("\n[1b/4] Henter vindmøller fra OpenStreetMap...")
+
+    query = """
+    [out:json][timeout:120];
+    (
+      node["power"="generator"]["generator:source"="wind"](54.5,7.5,58.0,15.7);
+    );
+    out;
+    """
+
+    headers = {
+        "User-Agent": "vandkant-boliger-script/1.0 (research project)",
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    servere = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    ]
+
+    r = None
+    for overpass_url in servere:
+        try:
+            print(f"    → Prøver {overpass_url} ...")
+            r = requests.post(overpass_url, data={"data": query}, headers=headers, timeout=180)
+            r.raise_for_status()
+            break
+        except requests.exceptions.RequestException as e:
+            print(f"    ⚠ Fejl ({e}) – prøver næste server...")
+            r = None
+
+    if r is None:
+        raise RuntimeError("Alle Overpass-servere fejlede ved hentning af vindmøller.")
+
+    data = r.json()
+    punkter = []
+    for el in data["elements"]:
+        if el["type"] == "node":
+            from shapely.geometry import Point
+            punkter.append(Point(el["lon"], el["lat"]))
+
+    if not punkter:
+        raise RuntimeError("Ingen vindmøller hentet fra OSM.")
+
+    gdf = gpd.GeoDataFrame(geometry=punkter, crs="EPSG:4326").to_crs(epsg=25832)
+    print(f"    ✓ {len(gdf)} vindmøller hentet")
+    return gdf
 
 
 # ─────────────────────────────────────────────
@@ -525,13 +582,24 @@ def filtrer_nær_vand(boliger, kyst_gdf, max_afstand=MAX_AFSTAND_METER):
     return nær_vand
 
 
+def beregn_afstand_vindmoeller(gdf, vindm_gdf):
+    """Tilføjer kolonne afstand_vindm_m: afstand til nærmeste vindmølle (meter)."""
+    print(f"\n[3b/4] Beregner afstand til nærmeste vindmølle for {len(gdf)} boliger...")
+    samlet = vindm_gdf.geometry.union_all()
+    gdf = gdf.copy()
+    afstande = [round(samlet.distance(geom), 0) for geom in tqdm(gdf.geometry, desc="  Vindmølleafstand")]
+    gdf["afstand_vindm_m"] = afstande
+    print(f"  ✓ Afstande beregnet (median {int(gdf['afstand_vindm_m'].median())}m)")
+    return gdf
+
+
 # ─────────────────────────────────────────────
 # TRIN 4: Gem resultater
 # ─────────────────────────────────────────────
 def gem_csv(gdf, filnavn=OUTPUT_CSV):
     """Gemmer resultater som CSV."""
     kolonner = ["adresse", "postnummer", "by", "pris", "type", "kvm",
-                "vaerelser", "byggeaar", "energimaerke", "liggetid", "afstand_m", "lat", "lng", "url"]
+                "vaerelser", "byggeaar", "energimaerke", "liggetid", "afstand_m", "afstand_vindm_m", "lat", "lng", "url"]
     
     # Behold kun kolonner der faktisk findes
     kolonner = [k for k in kolonner if k in gdf.columns]
@@ -553,6 +621,7 @@ def gem_boliger_json(gdf, filnavn="boliger.json"):
             "pris":     int(row["pris"]) if pd.notna(row.get("pris")) and row.get("pris") else 0,
             "type":     str(row.get("type", "")),
             "afstand":  float(row["afstand_m"]),
+            "vindm":    int(row["afstand_vindm_m"]) if pd.notna(row.get("afstand_vindm_m")) else 0,
             "liggetid": int(row["liggetid"]) if pd.notna(row.get("liggetid")) and row.get("liggetid") else 0,
         })
     with open(filnavn, "w", encoding="utf-8") as f:
@@ -586,6 +655,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
             "byggeaar":  str(row.get("byggeaar", "") or ""),
             "energi":    str(row.get("energimaerke", "") or ""),
             "afstand":   float(row["afstand_m"]),
+            "vindm":     int(row["afstand_vindm_m"]) if pd.notna(row.get("afstand_vindm_m")) else 0,
             "liggetid":  int(row["liggetid"]) if pd.notna(row.get("liggetid")) and row.get("liggetid") else 0,
             "url":       str(row.get("url", "#")),
             "ouAddress": str(row.get("ouAddress", "")),
@@ -797,6 +867,11 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
           <input type="range" id="slider-maxlig" min="0" max="365" step="1" value="365" oninput="updateSlider('lig')">
         </div>
       </div>
+      <div class="filter-group">
+        <label>Min. afstand til vindmølle</label>
+        <div class="range-row"><span id="lbl-vindm">0 m (alle)</span></div>
+        <input type="range" id="slider-vindm" min="0" max="3000" step="100" value="0" style="width:100%" oninput="updateSlider('vindm')">
+      </div>
       <div style="margin-top:10px;font-size:12px;color:#888;text-align:center" id="filter-result-info"></div>
     </div>
 
@@ -946,6 +1021,10 @@ function buildMarker(b, idx) {{
           <td style="color:#888;padding:4px 6px 2px 0">Afstand til kyst</td>
           <td style="font-weight:600;color:#c0392b">🌊 ${{b.afstand}} m</td>
         </tr>
+        <tr>
+          <td style="color:#888;padding:2px 6px 2px 0">Nærmeste vindmølle</td>
+          <td style="font-weight:600;color:${{b.vindm < 500 ? '#c0392b' : b.vindm < 1000 ? '#e67e22' : '#27ae60'}}">💨 ${{b.vindm ? b.vindm.toLocaleString("da-DK") + " m" : "–"}}</td>
+        </tr>
       </table>
       <a class="popup-link" href="https://www.boliga.dk/adresse/${{b.ouAddress}}-${{b.ouId}}" target="_blank">Se annonce på Boliga →</a>
       <a class="popup-link" style="margin-top:6px;background:#e67e22" href="https://www.boligsiden.dk/adresse/${{b.ouAddress}}" target="_blank">Se annonce på Boligsiden →</a>
@@ -1003,6 +1082,7 @@ function buildCard(b, idx) {{
           </tr>
         </table>
         ${{afstandBadge(b.afstand)}}
+        ${{b.vindm > 0 ? `<span class="card-badge" style="background:${{b.vindm < 500 ? '#e74c3c' : b.vindm < 1000 ? '#e67e22' : '#27ae60'}};color:white;font-size:10px;padding:2px 7px;border-radius:10px;margin-top:3px;display:inline-block">💨 ${{b.vindm.toLocaleString("da-DK")}}m til vindmølle</span>` : ""}}
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
           <a href="https://www.boligsiden.dk/adresse/${{b.ouAddress}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#e67e22;text-decoration:none;font-weight:600;border:1px solid #e67e22;border-radius:4px;padding:2px 6px">🏠 Boligsiden</a>
           ${{b.bfeNr ? `<a href="https://www.matriklen.dk/#/kort/sfe/${{b.bfeNr}}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#1a6b3a;text-decoration:none;font-weight:600;border:1px solid #1a6b3a;border-radius:4px;padding:2px 6px">🗺 Matrikel</a>` : ""}}
@@ -1070,6 +1150,9 @@ function updateSlider(type) {{
     if (min > max) {{ document.getElementById("slider-minlig").value = max; min = max; }}
     document.getElementById("lbl-minlig").textContent = min + " dage";
     document.getElementById("lbl-maxlig").textContent = max >= 365 ? "365+ dage" : max + " dage";
+  }} else if (type === 'vindm') {{
+    const v = parseInt(document.getElementById("slider-vindm").value);
+    document.getElementById("lbl-vindm").textContent = v === 0 ? "0 m (alle)" : "mindst " + v.toLocaleString("da-DK") + " m";
   }}
   applyFilters();
 }}
@@ -1083,7 +1166,8 @@ function nulstilFiltre() {{
   document.getElementById("slider-maxgrund").value = 10000;
   document.getElementById("slider-minlig").value = 0;
   document.getElementById("slider-maxlig").value = 365;
-  ['pris','kvm','grund','lig'].forEach(updateSlider);
+  document.getElementById("slider-vindm").value = 0;
+  ['pris','kvm','grund','lig','vindm'].forEach(updateSlider);
 }}
 
 function toggleTypeMenu() {{
@@ -1109,6 +1193,7 @@ function applyFilters() {{
   const maxgrund  = parseInt(document.getElementById("slider-maxgrund")?.value) || 10000;
   const minlig    = parseInt(document.getElementById("slider-minlig")?.value)   || 0;
   const maxlig    = parseInt(document.getElementById("slider-maxlig")?.value)   || 365;
+  const minvindm  = parseInt(document.getElementById("slider-vindm")?.value)    || 0;
   const maxPrisEffektiv  = maxpris  >= 40000000 ? Infinity : maxpris;
   const maxKvmEffektiv   = maxkvm   >= 500      ? Infinity : maxkvm;
   const maxGrundEffektiv = maxgrund >= 10000    ? Infinity : maxgrund;
@@ -1124,6 +1209,7 @@ function applyFilters() {{
     (b.kvm === 0   || (b.kvm >= minkvm   && b.kvm <= maxKvmEffektiv)) &&
     (b.grundkvm === 0 || (b.grundkvm >= mingrund && b.grundkvm <= maxGrundEffektiv)) &&
     (b.liggetid === 0 || (b.liggetid >= minlig && b.liggetid <= maxLigEffektiv)) &&
+    (minvindm === 0 || b.vindm >= minvindm) &&
     !ekskl.has(String(b.pnr))
   );
   
@@ -1400,6 +1486,10 @@ def main():
         if os.path.exists(CACHE_BOLIGER_FIL):
             os.remove(CACHE_BOLIGER_FIL)
             print(f"🗑  Cache slettet: {CACHE_BOLIGER_FIL}")
+    if args.refresh in ("alle", "vindm"):
+        if os.path.exists(CACHE_VINDM_FIL):
+            os.remove(CACHE_VINDM_FIL)
+            print(f"🗑  Cache slettet: {CACHE_VINDM_FIL}")
 
     print("=" * 60)
     print("  Ejendomme til salg max 200m fra danske farvande")
@@ -1428,6 +1518,23 @@ def main():
     else:
         print("[1/4] Kystlinje indlæst fra cache ✓")
 
+    # 1b. Vindmøller (med cache + repo-backup)
+    VINDM_BACKUP = "vindm_backup.pkl"
+    vindm_gdf = None
+    if BRUG_CACHE:
+        vindm_gdf = indlæs_cache(CACHE_VINDM_FIL)
+    if vindm_gdf is None and os.path.exists(VINDM_BACKUP):
+        print("[1b/4] Vindmøller indlæst fra repo-backup ✓")
+        vindm_gdf = indlæs_cache(VINDM_BACKUP)
+    if vindm_gdf is None:
+        vindm_gdf = hent_vindmoeller()
+        if BRUG_CACHE:
+            gem_cache(vindm_gdf, CACHE_VINDM_FIL)
+        gem_cache(vindm_gdf, VINDM_BACKUP)
+        print(f"    💾 Repo-backup gemt: {VINDM_BACKUP} (commit dette til git)")
+    else:
+        print("[1b/4] Vindmøller indlæst fra cache ✓")
+
     # 2. Boligannoncer (med cache)
     boliger = None
     if BRUG_CACHE:
@@ -1452,13 +1559,16 @@ def main():
     # 2b. Ekskluder byer/kommuner/postnumre
     boliger = filtrer_ekskluderede(boliger)
 
-    # 3. Filtrer på afstand
+    # 3. Filtrer på afstand til kyst
     resultat = filtrer_nær_vand(boliger, kyst_gdf)
-    
+
     if resultat.empty:
         print("\n⚠ Ingen boliger fundet inden for 150m. Prøv at øge MAX_AFSTAND_METER.")
         return
-    
+
+    # 3b. Beregn afstand til nærmeste vindmølle
+    resultat = beregn_afstand_vindmoeller(resultat, vindm_gdf)
+
     # 4. Gem output
     print("\n[4/4] Gemmer resultater...")
     gem_csv(resultat)
