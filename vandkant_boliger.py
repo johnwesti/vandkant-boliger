@@ -629,7 +629,7 @@ def gem_boliger_json(gdf, filnavn="boliger.json"):
     print(f"  ✓ boliger.json gemt: {filnavn}")
 
 
-def gem_kort(gdf, filnavn=OUTPUT_HTML):
+def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
     """Laver et interaktivt Folium-kort i Boliga-stil med clustering og property cards."""
     print(f"  → Genererer interaktivt kort...")
 
@@ -670,6 +670,14 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
 
     import json as _json
     data_js = _json.dumps(boliger_json, ensure_ascii=False)
+
+    # Vindmøller til kortlag: konvertér UTM32N → WGS84 og byg kompakt [[lat,lng],…]
+    if vindm_gdf is not None:
+        vindm_wgs = vindm_gdf.to_crs(epsg=4326)
+        vindm_coords = [[round(geom.y, 5), round(geom.x, 5)] for geom in vindm_wgs.geometry]
+        vindm_js = _json.dumps(vindm_coords)
+    else:
+        vindm_js = "[]"
 
     html = f"""<!DOCTYPE html>
 <html lang="da">
@@ -821,6 +829,9 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
       <option value="75">Max 75m</option>
       <option value="30">Max 30m</option>
     </select>
+    <button id="vindm-lag-btn" onclick="toggleVindmoellerLag()" title="Vis/skjul vindmøller på kortet" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
+      💨 Vindmøller
+    </button>
 
   </div>
   <!-- Filter panel -->
@@ -913,6 +924,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
 
 <script>
 const BOLIGER = {data_js};
+const VINDMOELLER = {vindm_js};
 
 // Byg type-dropdown dynamisk fra data
 const alleTyper = [...new Set(BOLIGER.map(b => b.type))].sort();
@@ -957,6 +969,31 @@ L.tileLayer("https://{{s}}.basemaps.cartocdn.com/rastertiles/voyager/{{z}}/{{x}}
   attribution: "© OpenStreetMap © CARTO",
   subdomains: "abcd", maxZoom: 19
 }}).addTo(map);
+
+// Vindmølle-lag
+const vindmLag = L.layerGroup();
+VINDMOELLER.forEach(function(c) {{
+  L.circleMarker(c, {{
+    radius: 4,
+    color: "#5d4e8a",
+    fillColor: "#7c6daa",
+    fillOpacity: 0.8,
+    weight: 1,
+    interactive: false,
+  }}).addTo(vindmLag);
+}});
+let vindmLagAktiv = false;
+function toggleVindmoellerLag() {{
+  const btn = document.getElementById("vindm-lag-btn");
+  if (vindmLagAktiv) {{
+    map.removeLayer(vindmLag);
+    btn.style.background = "rgba(255,255,255,.15)";
+  }} else {{
+    vindmLag.addTo(map);
+    btn.style.background = "rgba(124,109,170,.6)";
+  }}
+  vindmLagAktiv = !vindmLagAktiv;
+}}
 
 const cluster = L.markerClusterGroup({{
   maxClusterRadius: 50,
@@ -1572,7 +1609,7 @@ def main():
     # 4. Gem output
     print("\n[4/4] Gemmer resultater...")
     gem_csv(resultat)
-    gem_kort(resultat)
+    gem_kort(resultat, vindm_gdf=vindm_gdf)
     gem_boliger_json(resultat)
     
     # Udskriv statistik
