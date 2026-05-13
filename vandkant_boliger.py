@@ -168,6 +168,7 @@ CACHE_KYST_FIL    = "cache_kystlinje.pkl"       # Kystlinje (ændrer sig sjælde
 CACHE_BOLIGER_FIL = "cache_boliger.pkl"          # Boligannoncer
 CACHE_BOLIGER_MAX_ALDER_TIMER = 24               # Genhent boliger hvis cachen er ældre end X timer
 CACHE_VINDM_FIL   = "cache_vindmoeller.pkl"      # Vindmøller (ændrer sig sjældent)
+CACHE_PLANVINDM_FIL = "cache_planvindm.pkl"      # Vindmølle-lokalplaner fra Plandata
 
 # ─────────────────────────────────────────────
 # CACHE-HJÆLPEFUNKTIONER
@@ -343,6 +344,37 @@ def hent_vindmoeller():
     gdf = gpd.GeoDataFrame(geometry=punkter, crs="EPSG:4326").to_crs(epsg=25832)
     print(f"    ✓ {len(gdf)} vindmøller hentet")
     return gdf
+
+
+def hent_vindmoelle_planer():
+    """
+    Henter vedtagne og foreslåede vindmølle-lokalplaner fra Plandata.dk WFS.
+    Returnerer dict med 'vedtaget' og 'forslag' som GeoJSON-dicts (EPSG:4326).
+    """
+    print("\n[1c/4] Henter vindmølle-lokalplaner fra Plandata.dk...")
+    base = "https://geoserver.plandata.dk/geoserver/pdk/wfs"
+    props = "plannavn,kommunenavn,datovedt,datoforsl,megawatt,doklink"
+    resultat = {}
+    lag_map = {
+        "vedtaget": "theme_pdk_lokalplan_vedtaget_vindmoelle",
+        "forslag":  "theme_pdk_lokalplan_forslag_vindmoelle",
+    }
+    for navn, layer in lag_map.items():
+        r = requests.get(base, params={
+            "SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature",
+            "TYPENAMES": f"pdk:{layer}", "COUNT": "2000",
+            "OUTPUTFORMAT": "application/json", "SRSNAME": "EPSG:4326",
+            "PROPERTYNAME": props,
+        }, timeout=60)
+        r.raise_for_status()
+        data = r.json()
+        # Ryd tomme/ubrugelige felter for at spare plads
+        for f in data.get("features", []):
+            p = f.get("properties", {})
+            f["properties"] = {k: v for k, v in p.items() if v not in (None, "", 0)}
+        resultat[navn] = data
+        print(f"    ✓ {len(data.get('features', []))} {navn} planer hentet")
+    return resultat
 
 
 # ─────────────────────────────────────────────
@@ -629,7 +661,7 @@ def gem_boliger_json(gdf, filnavn="boliger.json"):
     print(f"  ✓ boliger.json gemt: {filnavn}")
 
 
-def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
+def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None, planvindm=None):
     """Laver et interaktivt Folium-kort i Boliga-stil med clustering og property cards."""
     print(f"  → Genererer interaktivt kort...")
 
@@ -678,6 +710,10 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
         vindm_js = _json.dumps(vindm_coords)
     else:
         vindm_js = "[]"
+
+    # Vindmølle-lokalplaner (GeoJSON fra Plandata)
+    planvindm_vedtaget_js = _json.dumps(planvindm["vedtaget"] if planvindm else {"type": "FeatureCollection", "features": []}, ensure_ascii=False)
+    planvindm_forslag_js  = _json.dumps(planvindm["forslag"]  if planvindm else {"type": "FeatureCollection", "features": []}, ensure_ascii=False)
 
     html = f"""<!DOCTYPE html>
 <html lang="da">
@@ -829,8 +865,11 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
       <option value="75">Max 75m</option>
       <option value="30">Max 30m</option>
     </select>
-    <button id="vindm-lag-btn" onclick="toggleVindmoellerLag()" title="Vis/skjul vindmøller på kortet" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
+    <button id="vindm-lag-btn" onclick="toggleVindmoellerLag()" title="Vis/skjul eksisterende vindmøller" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
       💨 Vindmøller
+    </button>
+    <button id="planvindm-btn" onclick="togglePlanLag()" title="Vis/skjul godkendte og planlagte vindmølle-lokalplaner" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
+      📋 Planlagte
     </button>
 
   </div>
@@ -925,6 +964,8 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
 <script>
 const BOLIGER = {data_js};
 const VINDMOELLER = {vindm_js};
+const PLANVINDM_VEDTAGET = {planvindm_vedtaget_js};
+const PLANVINDM_FORSLAG  = {planvindm_forslag_js};
 
 // Byg type-dropdown dynamisk fra data
 const alleTyper = [...new Set(BOLIGER.map(b => b.type))].sort();
@@ -993,6 +1034,40 @@ function toggleVindmoellerLag() {{
     btn.style.background = "rgba(124,109,170,.6)";
   }}
   vindmLagAktiv = !vindmLagAktiv;
+}}
+
+// Vindmølle-lokalplaner lag
+function fmtDato(d) {{ return d ? d.substring(0,10) : null; }}
+function planPopup(f) {{
+  const p = f.properties;
+  const mw = p.megawatt ? `<br>Kapacitet: ${{p.megawatt}} MW` : "";
+  const dato = p.datovedt ? `<br>Vedtaget: ${{fmtDato(p.datovedt)}}` : (p.datoforsl ? `<br>Forslag: ${{fmtDato(p.datoforsl)}}` : "");
+  const link = p.doklink ? `<br><a href="${{p.doklink}}" target="_blank" style="color:#1a5276">Se lokalplan →</a>` : "";
+  return `<div style="font-size:13px;max-width:220px"><b>${{p.plannavn || "Vindmølle-lokalplan"}}</b><br>${{p.kommunenavn || ""}}${{dato}}${{mw}}${{link}}</div>`;
+}}
+
+const planVedtagetLag = L.geoJSON(PLANVINDM_VEDTAGET, {{
+  style: {{ color: "#e67e22", fillColor: "#f39c12", fillOpacity: 0.25, weight: 1.5 }},
+  onEachFeature: function(f, l) {{ l.bindPopup(planPopup(f)); }}
+}});
+const planForslagLag = L.geoJSON(PLANVINDM_FORSLAG, {{
+  style: {{ color: "#f1c40f", fillColor: "#f9e57a", fillOpacity: 0.35, weight: 1.5, dashArray: "5,4" }},
+  onEachFeature: function(f, l) {{ l.bindPopup(planPopup(f)); }}
+}});
+
+let planLagAktiv = false;
+function togglePlanLag() {{
+  const btn = document.getElementById("planvindm-btn");
+  if (planLagAktiv) {{
+    map.removeLayer(planVedtagetLag);
+    map.removeLayer(planForslagLag);
+    btn.style.background = "rgba(255,255,255,.15)";
+  }} else {{
+    planVedtagetLag.addTo(map);
+    planForslagLag.addTo(map);
+    btn.style.background = "rgba(230,126,34,.6)";
+  }}
+  planLagAktiv = !planLagAktiv;
 }}
 
 const cluster = L.markerClusterGroup({{
@@ -1527,6 +1602,10 @@ def main():
         if os.path.exists(CACHE_VINDM_FIL):
             os.remove(CACHE_VINDM_FIL)
             print(f"🗑  Cache slettet: {CACHE_VINDM_FIL}")
+    if args.refresh in ("alle", "planvindm"):
+        if os.path.exists(CACHE_PLANVINDM_FIL):
+            os.remove(CACHE_PLANVINDM_FIL)
+            print(f"🗑  Cache slettet: {CACHE_PLANVINDM_FIL}")
 
     print("=" * 60)
     print("  Ejendomme til salg max 200m fra danske farvande")
@@ -1572,6 +1651,17 @@ def main():
     else:
         print("[1b/4] Vindmøller indlæst fra cache ✓")
 
+    # 1c. Vindmølle-lokalplaner (med cache)
+    planvindm = None
+    if BRUG_CACHE:
+        planvindm = indlæs_cache(CACHE_PLANVINDM_FIL)
+    if planvindm is None:
+        planvindm = hent_vindmoelle_planer()
+        if BRUG_CACHE:
+            gem_cache(planvindm, CACHE_PLANVINDM_FIL)
+    else:
+        print("[1c/4] Vindmølle-lokalplaner indlæst fra cache ✓")
+
     # 2. Boligannoncer (med cache)
     boliger = None
     if BRUG_CACHE:
@@ -1609,7 +1699,7 @@ def main():
     # 4. Gem output
     print("\n[4/4] Gemmer resultater...")
     gem_csv(resultat)
-    gem_kort(resultat, vindm_gdf=vindm_gdf)
+    gem_kort(resultat, vindm_gdf=vindm_gdf, planvindm=planvindm)
     gem_boliger_json(resultat)
     
     # Udskriv statistik
