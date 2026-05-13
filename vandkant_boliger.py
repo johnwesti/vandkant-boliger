@@ -865,12 +865,6 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None, planvindm=None):
       <option value="75">Max 75m</option>
       <option value="30">Max 30m</option>
     </select>
-    <button id="vindm-lag-btn" onclick="toggleVindmoellerLag()" title="Vis/skjul eksisterende vindmøller" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
-      💨 Vindmøller
-    </button>
-    <button id="planvindm-btn" onclick="togglePlanLag()" title="Vis/skjul godkendte og planlagte vindmølle-lokalplaner" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
-      📋 Planlagte
-    </button>
 
   </div>
   <!-- Filter panel -->
@@ -880,6 +874,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None, planvindm=None):
     <div style="display:flex;border-bottom:2px solid #eee">
       <button id="tab-filtre" onclick="skiftTab('filtre')" style="flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:600;color:#1a5276;border-bottom:2px solid #1a5276;margin-bottom:-2px;cursor:pointer">Filtre</button>
       <button id="tab-byer" onclick="skiftTab('byer')" style="flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:600;color:#999;cursor:pointer">Byer <span id="byer-badge" style="display:none;background:#e74c3c;color:white;border-radius:10px;padding:1px 6px;font-size:10px"></span></button>
+      <button id="tab-lag" onclick="skiftTab('lag')" style="flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:600;color:#999;cursor:pointer">Kortlag</button>
       <button onclick="nulstilFiltre()" style="padding:8px 12px;border:none;background:none;font-size:11px;color:#999;cursor:pointer;border-left:1px solid #eee">Nulstil</button>
     </div>
 
@@ -949,6 +944,40 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None, planvindm=None):
           </thead>
           <tbody id="by-tbody"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Tab: Kortlag -->
+    <div id="panel-lag" style="display:none;padding:14px;overflow-y:auto">
+      <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:10px">Skift kortlag til/fra:</div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleVindmoellerLag()">
+          <span id="vindm-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #7c6daa;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span id="vindm-check-inner" style="display:none;width:10px;height:10px;background:#7c6daa;border-radius:2px"></span>
+          </span>
+          <span style="display:flex;flex-direction:column">
+            <span style="font-weight:600;font-size:13px">💨 Eksisterende vindmøller</span>
+            <span style="font-size:11px;color:#888">OSM-data · {len(vindm_gdf) if vindm_gdf is not None else 0} vindmøller</span>
+          </span>
+          <span style="margin-left:auto;width:16px;height:16px;border-radius:50%;background:#7c6daa;flex-shrink:0"></span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="togglePlanLag()">
+          <span id="planvindm-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #e67e22;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span id="planvindm-check-inner" style="display:none;width:10px;height:10px;background:#e67e22;border-radius:2px"></span>
+          </span>
+          <span style="display:flex;flex-direction:column">
+            <span style="font-weight:600;font-size:13px">📋 Vindmølle-lokalplaner</span>
+            <span style="font-size:11px;color:#888">Plandata.dk · vedtaget <span style="color:#e67e22">■</span> / forslag <span style="color:#f1c40f">■</span></span>
+          </span>
+          <span style="margin-left:auto;width:16px;height:16px;border-radius:4px;background:#f39c12;flex-shrink:0"></span>
+        </label>
+      </div>
+
+      <div style="margin-top:14px;font-size:11px;color:#999;line-height:1.5">
+        Klik på en lokalplan-polygon for at se plannavn, kommune og link til planen.<br>
+        <a href="https://sologvindinfo.dk/spatialmap" target="_blank" style="color:#1a5276">Åbn fuld vindmøllekort på sologvindinfo.dk →</a>
       </div>
     </div>
 
@@ -1025,15 +1054,9 @@ VINDMOELLER.forEach(function(c) {{
 }});
 let vindmLagAktiv = false;
 function toggleVindmoellerLag() {{
-  const btn = document.getElementById("vindm-lag-btn");
-  if (vindmLagAktiv) {{
-    map.removeLayer(vindmLag);
-    btn.style.background = "rgba(255,255,255,.15)";
-  }} else {{
-    vindmLag.addTo(map);
-    btn.style.background = "rgba(124,109,170,.6)";
-  }}
   vindmLagAktiv = !vindmLagAktiv;
+  if (vindmLagAktiv) {{ vindmLag.addTo(map); }} else {{ map.removeLayer(vindmLag); }}
+  document.getElementById("vindm-check-inner").style.display = vindmLagAktiv ? "block" : "none";
 }}
 
 // Vindmølle-lokalplaner lag
@@ -1057,17 +1080,10 @@ const planForslagLag = L.geoJSON(PLANVINDM_FORSLAG, {{
 
 let planLagAktiv = false;
 function togglePlanLag() {{
-  const btn = document.getElementById("planvindm-btn");
-  if (planLagAktiv) {{
-    map.removeLayer(planVedtagetLag);
-    map.removeLayer(planForslagLag);
-    btn.style.background = "rgba(255,255,255,.15)";
-  }} else {{
-    planVedtagetLag.addTo(map);
-    planForslagLag.addTo(map);
-    btn.style.background = "rgba(230,126,34,.6)";
-  }}
   planLagAktiv = !planLagAktiv;
+  if (planLagAktiv) {{ planVedtagetLag.addTo(map); planForslagLag.addTo(map); }}
+  else {{ map.removeLayer(planVedtagetLag); map.removeLayer(planForslagLag); }}
+  document.getElementById("planvindm-check-inner").style.display = planLagAktiv ? "block" : "none";
 }}
 
 const cluster = L.markerClusterGroup({{
@@ -1460,11 +1476,14 @@ let bySortKol = 'bef', bySortDir = 'desc';
 
 function skiftTab(tab) {{
   document.getElementById('panel-filtre').style.display = tab === 'filtre' ? 'block' : 'none';
-  document.getElementById('panel-byer').style.display   = tab === 'byer'   ? 'flex' : 'none';
-  document.getElementById('tab-filtre').style.color = tab === 'filtre' ? '#1a5276' : '#999';
-  document.getElementById('tab-filtre').style.borderBottom = tab === 'filtre' ? '2px solid #1a5276' : 'none';
-  document.getElementById('tab-byer').style.color   = tab === 'byer'   ? '#1a5276' : '#999';
-  document.getElementById('tab-byer').style.borderBottom   = tab === 'byer'   ? '2px solid #1a5276' : 'none';
+  document.getElementById('panel-byer').style.display   = tab === 'byer'   ? 'flex'  : 'none';
+  document.getElementById('panel-lag').style.display    = tab === 'lag'    ? 'block' : 'none';
+  ['filtre','byer','lag'].forEach(function(t) {{
+    const btn = document.getElementById('tab-' + t);
+    const active = t === tab;
+    btn.style.color = active ? '#1a5276' : '#999';
+    btn.style.borderBottom = active ? '2px solid #1a5276' : 'none';
+  }});
   if (tab === 'byer') tegn();
 }}
 
