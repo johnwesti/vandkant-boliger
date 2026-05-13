@@ -793,8 +793,8 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML):
         <label>Liggetid (dage)</label>
         <div class="range-row"><span id="lbl-minlig">0 dage</span><span id="lbl-maxlig">365+ dage</span></div>
         <div class="dual-range">
-          <input type="range" id="slider-minlig" min="0" max="365" step="7" value="0" oninput="updateSlider('lig')">
-          <input type="range" id="slider-maxlig" min="0" max="365" step="7" value="365" oninput="updateSlider('lig')">
+          <input type="range" id="slider-minlig" min="0" max="365" step="1" value="0" oninput="updateSlider('lig')">
+          <input type="range" id="slider-maxlig" min="0" max="365" step="1" value="365" oninput="updateSlider('lig')">
         </div>
       </div>
       <div style="margin-top:10px;font-size:12px;color:#888;text-align:center" id="filter-result-info"></div>
