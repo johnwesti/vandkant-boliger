@@ -416,12 +416,15 @@ def dedupliker_boliger(boliger):
     """Fjerner dubletter fra boliglisten baseret på unikke Boliga-id'er eller adresse/koordinater."""
     keys = {}
     for bolig in boliger:
-        if bolig.get("id"):
-            nøgle = ("id", str(bolig["id"]).strip())
+        ou_id = str(bolig.get("ouId", "")).strip()
+        ou_addr = str(bolig.get("ouAddress", "")).strip().lower()
+        if ou_id and ou_id not in ("", "None"):
+            # Primær nøgle: ouId er ejendoms-ID og er unikt per fysisk ejendom
+            nøgle = ("ou", ou_id)
         elif bolig.get("guid"):
             nøgle = ("guid", str(bolig["guid"]).strip())
-        elif bolig.get("ouAddress") and bolig.get("ouId"):
-            nøgle = ("ou", str(bolig.get("ouAddress","")).strip().lower(), str(bolig.get("ouId","")).strip())
+        elif ou_addr and ou_id:
+            nøgle = ("ouaddr", ou_addr, ou_id)
         else:
             adresse = re.sub(r"\s+", " ", str(bolig.get("adresse", "")).strip().lower())
             nøgle = ("addr", adresse, str(bolig.get("postnummer", "")).strip(), f"{bolig.get('lat', '')}|{bolig.get('lng', '')}")
