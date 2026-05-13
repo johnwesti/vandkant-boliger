@@ -37,7 +37,7 @@ from tqdm import tqdm
 # KONFIGURATION
 # ─────────────────────────────────────────────
 MAX_AFSTAND_METER = 200          # Filtrér boliger inden for denne afstand
-BOLIG_TYPER = [1, 4, 5, 7, 8, 10]  # 1=Villa, 4=Fritidshus, 5=Landejendom, 7=Helårsgrund, 8=Fritidsgrund, 10=Andet/Tvangsauktion
+BOLIG_TYPER = [1, 4, 5, 6, 7, 8, 10]  # 1=Villa, 4=Fritidshus, 5=Landejendom, 6=Villalejlighed, 7=Helårsgrund, 8=Fritidsgrund, 10=Andet/Tvangsauktion
 OUTPUT_CSV  = "vandkant_boliger.csv"
 OUTPUT_HTML = "vandkant_kort.html"
 
@@ -372,7 +372,7 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
                 alle_boliger.append({
                     "id":           bolig.get("id", ""),
                     "guid":         bolig.get("guid", ""),
-                    "adresse":      bolig.get("address", ""),
+                    "adresse":      bolig.get("street", ""),
                     "postnummer":   bolig.get("zipCode", ""),
                     "by":           bolig.get("city", ""),
                     "pris":         bolig.get("price", 0),
