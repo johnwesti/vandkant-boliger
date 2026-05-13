@@ -671,13 +671,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
     import json as _json
     data_js = _json.dumps(boliger_json, ensure_ascii=False)
 
-    # Vindmøller til kortlag: konvertér UTM32N → WGS84 og byg kompakt [[lat,lng],…]
-    if vindm_gdf is not None:
-        vindm_wgs = vindm_gdf.to_crs(epsg=4326)
-        vindm_coords = [[round(geom.y, 5), round(geom.x, 5)] for geom in vindm_wgs.geometry]
-        vindm_js = _json.dumps(vindm_coords)
-    else:
-        vindm_js = "[]"
+    vindm_antal = len(vindm_gdf) if vindm_gdf is not None else 0
 
     html = f"""<!DOCTYPE html>
 <html lang="da">
@@ -922,7 +916,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
           </span>
           <span style="display:flex;flex-direction:column">
             <span style="font-weight:600;font-size:13px">💨 Eksisterende vindmøller</span>
-            <span style="font-size:11px;color:#888">OSM-data · {len(vindm_gdf) if vindm_gdf is not None else 0} vindmøller</span>
+            <span style="font-size:11px;color:#888">BPST officielt register · {vindm_antal} afstandsmålte</span>
           </span>
           <span style="margin-left:auto;width:16px;height:16px;border-radius:50%;background:#7c6daa;flex-shrink:0"></span>
         </label>
@@ -956,7 +950,6 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
 
 <script>
 const BOLIGER = {data_js};
-const VINDMOELLER = {vindm_js};
 
 // Byg type-dropdown dynamisk fra data
 const alleTyper = [...new Set(BOLIGER.map(b => b.type))].sort();
@@ -1002,18 +995,14 @@ L.tileLayer("https://{{s}}.basemaps.cartocdn.com/rastertiles/voyager/{{z}}/{{x}}
   subdomains: "abcd", maxZoom: 19
 }}).addTo(map);
 
-// Vindmølle-lag
-const vindmLag = L.layerGroup();
-VINDMOELLER.forEach(function(c) {{
-  L.circleMarker(c, {{
-    radius: 4,
-    color: "#5d4e8a",
-    fillColor: "#7c6daa",
-    fillOpacity: 0.8,
-    weight: 1,
-    interactive: false,
-  }}).addTo(vindmLag);
+// Eksisterende vindmøller – WMS fra Bolig- og Planstyrelsen (BPST)
+const BPST_WMS = "https://gisp.bpst.dk/ve/ows";
+const vindmLag = L.tileLayer.wms(BPST_WMS, {{
+  layers: "ve:vindmoeller",
+  format: "image/png", transparent: true, version: "1.1.1", opacity: 0.9,
+  attribution: "BPST – Bolig- og Planstyrelsen"
 }});
+
 let vindmLagAktiv = false;
 function toggleVindmoellerLag() {{
   vindmLagAktiv = !vindmLagAktiv;
