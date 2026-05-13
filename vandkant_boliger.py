@@ -25,6 +25,7 @@ import pandas as pd
 from shapely.geometry import Point, shape, MultiLineString, LineString
 import folium
 import json
+import re
 import time
 import pickle
 import os
@@ -411,6 +412,28 @@ def hent_boliger_fra_boliga(bolig_typer=BOLIG_TYPER, max_sider=50):
 # ─────────────────────────────────────────────
 # TRIN 2b: Ekskluder byer/kommuner/postnumre
 # ─────────────────────────────────────────────
+def dedupliker_boliger(boliger):
+    """Fjerner dubletter fra boliglisten baseret på unikke Boliga-id'er eller adresse/koordinater."""
+    keys = {}
+    for bolig in boliger:
+        if bolig.get("id"):
+            nøgle = ("id", str(bolig["id"]).strip())
+        elif bolig.get("guid"):
+            nøgle = ("guid", str(bolig["guid"]).strip())
+        elif bolig.get("ouAddress") and bolig.get("ouId"):
+            nøgle = ("ou", str(bolig.get("ouAddress","")).strip().lower(), str(bolig.get("ouId","")).strip())
+        else:
+            adresse = re.sub(r"\s+", " ", str(bolig.get("adresse", "")).strip().lower())
+            nøgle = ("addr", adresse, str(bolig.get("postnummer", "")).strip(), f"{bolig.get('lat', '')}|{bolig.get('lng', '')}")
+        if nøgle not in keys:
+            keys[nøgle] = bolig
+
+    fjernet = len(boliger) - len(keys)
+    if fjernet:
+        print(f"  → Fjernet {fjernet} dubletter fra boligdata")
+    return list(keys.values())
+
+
 def filtrer_ekskluderede(boliger):
     """
     Fjerner boliger i ekskluderede byer, kommuner eller postnumre.
@@ -1415,6 +1438,12 @@ def main():
     
     if not boliger:
         print("\n⚠ Ingen boliger hentet. Tjek API-forbindelsen og prøv igen.")
+        return
+
+    # Fjern dubletter før videre filtrering
+    boliger = dedupliker_boliger(boliger)
+    if not boliger:
+        print("\n⚠ Ingen boliger tilbage efter deduplikering.")
         return
     
     # 2b. Ekskluder byer/kommuner/postnumre
