@@ -140,7 +140,7 @@
 <div id="topbar">
   <h1>🌊 Vandkant Boliger</h1>
   <span class="count" id="result-count">2073 boliger inden for 200m fra kysten</span>
-  <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 00:37</span>
+  <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 00:41</span>
   <div class="filters">
     <div style="position:relative;display:inline-block">
       <button id="type-btn" onclick="toggleTypeMenu()" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
@@ -497,11 +497,13 @@ function toggleOversvom() {
   syncKl("kl-oversvom", oversvomAktiv);
 }
 
-// Matrikelkort – Datafordeler med credentials i URL
+// Matrikelkort – Datafordeler MATRIKLEN2
 const matLag = L.tileLayer.wms(
-  "https://services.datafordeler.dk/Matrikel/MatrikelGaeldendeOgForeloebigWMS/1.0.0/WMS?username=FGWXTTMBMA&password=Plandata2021!", {
-  layers: "MatrikelGaeldendeOgForeloebigWMS", format: "image/png", transparent: true,
-  version: "1.0.0", opacity: 0.75, attribution: "Geodatastyrelsen"
+  "https://services.datafordeler.dk/MATRIKLEN2/MatGaeldendeOgForeloebigWMS/1.0.0/WMS?username=LYNZPAJIGS&password=tJqYAcw8d-c&token=4ed34c05cdeb91158ddb123f4958fb60", {
+  layers: "MatrikelSkel_Gaeldende,OptagetVej_Gaeldende,Centroide_Gaeldende",
+  styles: "Roede_skel,Roed_OptagetVej,Sorte_centroider",
+  format: "image/png", transparent: true, version: "1.3.0", opacity: 0.8,
+  attribution: "Geodatastyrelsen – Datafordeler"
 });
 let matAktiv = false;
 function toggleMat() {
