@@ -503,7 +503,7 @@ function drawSolLys() {
   const dato = new Date(document.getElementById("sollys-dato").value || new Date());
   const minutter = parseInt(document.getElementById("sollys-tid").value);
   dato.setHours(Math.floor(minutter/60), minutter%60, 0, 0);
-  const R = 8000 / Math.pow(2, map.getZoom()); // skalerer med zoom
+  const R = 4000 / Math.pow(2, map.getZoom()); // fast visuel størrelse uanset zoom
 
   // Sol-sti bue (solop til solnedgang)
   const arcPts = [];
@@ -569,6 +569,7 @@ function toggleSolLys() {
     solLysGroup.addTo(map);
     document.getElementById("sollys-dato").oninput = drawSolLys;
     map.on("click", function(e) { if(solLysAktiv) { solLysCenter = e.latlng; drawSolLys(); } });
+    map.on("zoomend", function() { if(solLysAktiv) drawSolLys(); });
   } else {
     map.removeLayer(solLysGroup);
     solLysCenter = null;
