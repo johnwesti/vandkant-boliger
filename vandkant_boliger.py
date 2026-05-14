@@ -1091,8 +1091,8 @@ function syncKl(id, aktiv) {{
 let luftfotoAktiv = false;
 function toggleLuftfoto() {{
   luftfotoAktiv = !luftfotoAktiv;
-  if (luftfotoAktiv) {{ map.removeLayer(topoLag); luftfotoLag.addTo(map); luftfotoLag.bringToBack(); }}
-  else {{ map.removeLayer(luftfotoLag); topoLag.addTo(map); topoLag.bringToBack(); }}
+  if (luftfotoAktiv) {{ map.removeLayer(topoLag); luftfotoLag.addTo(map); }}
+  else {{ map.removeLayer(luftfotoLag); topoLag.addTo(map); }}
   const ci = document.getElementById("luftfoto-check-inner");
   if (ci) ci.style.display = luftfotoAktiv ? "block" : "none";
   syncKl("kl-luftfoto", luftfotoAktiv);
@@ -1172,12 +1172,11 @@ function toggleOversvom() {{
   syncKl("kl-oversvom", oversvomAktiv);
 }}
 
-// Matrikelkort – Datafordeler (kræver token fra dataforsyningen.dk)
-const matLag = L.tileLayer.wms("https://services.datafordeler.dk/Matrikel/MatrikelGaeldendeOgForeloebigWMS/1.0.0/WMS", {{
+// Matrikelkort – Datafordeler med credentials i URL
+const matLag = L.tileLayer.wms(
+  "https://services.datafordeler.dk/Matrikel/MatrikelGaeldendeOgForeloebigWMS/1.0.0/WMS?username=FGWXTTMBMA&password=Plandata2021!", {{
   layers: "MatrikelGaeldendeOgForeloebigWMS", format: "image/png", transparent: true,
-  version: "1.0.0", opacity: 0.7,
-  username: "FGWXTTMBMA", password: "Plandata2021!",
-  attribution: "Geodatastyrelsen"
+  version: "1.0.0", opacity: 0.75, attribution: "Geodatastyrelsen"
 }});
 let matAktiv = false;
 function toggleMat() {{
