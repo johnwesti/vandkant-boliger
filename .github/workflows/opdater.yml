@@ -31,6 +31,26 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Beregn cache-nøgler
+        id: keys
+        run: |
+          echo "boliger=$(python -c 'import time; print(int(time.time()//43200))')" >> $GITHUB_OUTPUT
+          echo "geo=$(date -u +%Y-%W)" >> $GITHUB_OUTPUT
+
+      - name: Cache boliger (12 timer)
+        uses: actions/cache@v4
+        with:
+          path: cache_boliger.pkl
+          key: boliger-${{ steps.keys.outputs.boliger }}
+
+      - name: Cache geodata (ugentlig)
+        uses: actions/cache@v4
+        with:
+          path: |
+            cache_kystlinje.pkl
+            cache_vindmoeller.pkl
+          key: geo-${{ steps.keys.outputs.geo }}
+
       - name: Run script
         run: python vandkant_boliger.py
 
