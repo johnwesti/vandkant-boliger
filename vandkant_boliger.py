@@ -910,6 +910,58 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
       <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:10px">Skift kortlag til/fra:</div>
 
       <div style="display:flex;flex-direction:column;gap:8px">
+
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleLuftfoto()">
+          <span id="luftfoto-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #555;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span id="luftfoto-check-inner" style="display:none;width:10px;height:10px;background:#555;border-radius:2px"></span>
+          </span>
+          <span style="display:flex;flex-direction:column">
+            <span style="font-weight:600;font-size:13px">🛰️ Luftfoto</span>
+            <span style="font-size:11px;color:#888">Esri World Imagery</span>
+          </span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleSolInd()">
+          <span id="solind-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #f39c12;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span id="solind-check-inner" style="display:none;width:10px;height:10px;background:#f39c12;border-radius:2px"></span>
+          </span>
+          <span style="display:flex;flex-direction:column">
+            <span style="font-weight:600;font-size:13px">☀️ Solens bane</span>
+            <span style="font-size:11px;color:#888">BPST – årlig solindstråling på tage</span>
+          </span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleStoj()">
+          <span id="stoj-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #8e44ad;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span id="stoj-check-inner" style="display:none;width:10px;height:10px;background:#8e44ad;border-radius:2px"></span>
+          </span>
+          <span style="display:flex;flex-direction:column">
+            <span style="font-weight:600;font-size:13px">🔊 Støj</span>
+            <span style="font-size:11px;color:#888">Vejdirektoratet – vejstøjkort</span>
+          </span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleOversvom()">
+          <span id="oversvom-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #2980b9;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span id="oversvom-check-inner" style="display:none;width:10px;height:10px;background:#2980b9;border-radius:2px"></span>
+          </span>
+          <span style="display:flex;flex-direction:column">
+            <span style="font-weight:600;font-size:13px">🌧️ Nedbør / oversvømmelse</span>
+            <span style="font-size:11px;color:#888">Klimatilpasning.dk – havvand +20cm</span>
+          </span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleMat()">
+          <span id="mat-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #1a5276;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span id="mat-check-inner" style="display:none;width:10px;height:10px;background:#1a5276;border-radius:2px"></span>
+          </span>
+          <span style="display:flex;flex-direction:column">
+            <span style="font-weight:600;font-size:13px">📐 Matrikler</span>
+            <span style="font-size:11px;color:#888">Geodatastyrelsen – matrikelkort</span>
+          </span>
+        </label>
+
+        <div style="height:1px;background:#eee;margin:4px 0"></div>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleVindmoellerLag()">
           <span id="vindm-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #7c6daa;display:flex;align-items:center;justify-content:center;flex-shrink:0">
             <span id="vindm-check-inner" style="display:none;width:10px;height:10px;background:#7c6daa;border-radius:2px"></span>
@@ -999,12 +1051,23 @@ function markerKlasse(a) {{
   return "blaa";
 }}
 
-// Kort
-const map = L.map("map").setView([56.0, 10.5], 7);
-L.tileLayer("https://{{s}}.basemaps.cartocdn.com/rastertiles/voyager/{{z}}/{{x}}/{{y}}{{r}}.png", {{
-  attribution: "© OpenStreetMap © CARTO",
-  subdomains: "abcd", maxZoom: 19
-}}).addTo(map);
+// Kort – to baselayers (topo og luftfoto)
+const topoLag = L.tileLayer("https://{{s}}.basemaps.cartocdn.com/rastertiles/voyager/{{z}}/{{x}}/{{y}}{{r}}.png", {{
+  attribution: "© OpenStreetMap © CARTO", subdomains: "abcd", maxZoom: 19
+}});
+const luftfotoLag = L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}", {{
+  attribution: "© Esri — Earthstar Geographics", maxZoom: 19
+}});
+const map = L.map("map", {{ layers: [topoLag] }}).setView([56.0, 10.5], 7);
+
+let luftfotoAktiv = false;
+function toggleLuftfoto() {{
+  luftfotoAktiv = !luftfotoAktiv;
+  if (luftfotoAktiv) {{ map.removeLayer(topoLag); luftfotoLag.addTo(map); luftfotoLag.bringToBack(); }}
+  else {{ map.removeLayer(luftfotoLag); topoLag.addTo(map); topoLag.bringToBack(); }}
+  document.getElementById("luftfoto-check-inner").style.display = luftfotoAktiv ? "block" : "none";
+}}
 
 // Eksisterende vindmøller – WMS fra Bolig- og Planstyrelsen (BPST)
 const BPST_WMS = "https://gisp.bpst.dk/ve/ows";
@@ -1032,6 +1095,56 @@ function toggleSolLag() {{
   solLagAktiv = !solLagAktiv;
   if (solLagAktiv) {{ solLag.addTo(map); }} else {{ map.removeLayer(solLag); }}
   document.getElementById("sol-check-inner").style.display = solLagAktiv ? "block" : "none";
+}}
+
+// Solindstråling på tage – BPST tage_udst
+const solIndLag = L.tileLayer.wms(BPST_WMS, {{
+  layers: "tage_udst", format: "image/png", transparent: true, version: "1.1.1", opacity: 0.75,
+  attribution: "BPST"
+}});
+let solIndAktiv = false;
+function toggleSolInd() {{
+  solIndAktiv = !solIndAktiv;
+  if (solIndAktiv) {{ solIndLag.addTo(map); }} else {{ map.removeLayer(solIndLag); }}
+  document.getElementById("solind-check-inner").style.display = solIndAktiv ? "block" : "none";
+}}
+
+// Vejstøj – Vejdirektoratets WMS
+const stojLag = L.tileLayer.wms("https://gis.vd.dk/arcgis/services/OffentligData/Stoej/MapServer/WmsServer", {{
+  layers: "0", format: "image/png", transparent: true, version: "1.3.0", opacity: 0.65,
+  attribution: "Vejdirektoratet"
+}});
+let stojAktiv = false;
+function toggleStoj() {{
+  stojAktiv = !stojAktiv;
+  if (stojAktiv) {{ stojLag.addTo(map); }} else {{ map.removeLayer(stojLag); }}
+  document.getElementById("stoj-check-inner").style.display = stojAktiv ? "block" : "none";
+}}
+
+// Oversvømmelsesrisiko – Klimatilpasning.dk
+const oversvomLag = L.tileLayer.wms("https://www.klimatilpasning.dk/service/wms/", {{
+  layers: "havvand_20cm", format: "image/png", transparent: true, version: "1.1.1", opacity: 0.6,
+  attribution: "Klimatilpasning.dk"
+}});
+let oversvomAktiv = false;
+function toggleOversvom() {{
+  oversvomAktiv = !oversvomAktiv;
+  if (oversvomAktiv) {{ oversvomLag.addTo(map); }} else {{ map.removeLayer(oversvomLag); }}
+  document.getElementById("oversvom-check-inner").style.display = oversvomAktiv ? "block" : "none";
+}}
+
+// Matrikelkort – Datafordeler (kræver token fra dataforsyningen.dk)
+const matLag = L.tileLayer.wms("https://services.datafordeler.dk/Matrikel/MatrikelGaeldendeOgForeloebigWMS/1.0.0/WMS", {{
+  layers: "MatrikelGaeldendeOgForeloebigWMS", format: "image/png", transparent: true,
+  version: "1.0.0", opacity: 0.7,
+  username: "FGWXTTMBMA", password: "Plandata2021!",
+  attribution: "Geodatastyrelsen"
+}});
+let matAktiv = false;
+function toggleMat() {{
+  matAktiv = !matAktiv;
+  if (matAktiv) {{ matLag.addTo(map); }} else {{ map.removeLayer(matLag); }}
+  document.getElementById("mat-check-inner").style.display = matAktiv ? "block" : "none";
 }}
 
 // Vindmølle-lokalplaner lag
