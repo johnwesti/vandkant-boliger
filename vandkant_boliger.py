@@ -166,7 +166,7 @@ EKSKLUDER_POSTNUMRE = {
 BRUG_CACHE        = True
 CACHE_KYST_FIL    = "cache_kystlinje.pkl"       # Kystlinje (ændrer sig sjældent)
 CACHE_BOLIGER_FIL = "cache_boliger.pkl"          # Boligannoncer
-CACHE_BOLIGER_MAX_ALDER_TIMER = 24               # Genhent boliger hvis cachen er ældre end X timer
+CACHE_BOLIGER_MAX_ALDER_TIMER = 12               # Genhent boliger hvis cachen er ældre end X timer
 CACHE_VINDM_FIL   = "cache_vindmoeller.pkl"      # Vindmøller (ændrer sig sjældent)
 
 # ─────────────────────────────────────────────
