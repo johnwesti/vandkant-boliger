@@ -921,6 +921,17 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
           <span style="margin-left:auto;width:16px;height:16px;border-radius:50%;background:#7c6daa;flex-shrink:0"></span>
         </label>
 
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleSolLag()">
+          <span id="sol-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #f4d03f;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span id="sol-check-inner" style="display:none;width:10px;height:10px;background:#f4d03f;border-radius:2px"></span>
+          </span>
+          <span style="display:flex;flex-direction:column">
+            <span style="font-weight:600;font-size:13px">☀️ Store solcelleanlæg</span>
+            <span style="font-size:11px;color:#888">BPST officielt register</span>
+          </span>
+          <span style="margin-left:auto;width:16px;height:16px;border-radius:2px;background:#f4d03f;flex-shrink:0"></span>
+        </label>
+
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="togglePlanLag()">
           <span id="planvindm-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #e67e22;display:flex;align-items:center;justify-content:center;flex-shrink:0">
             <span id="planvindm-check-inner" style="display:none;width:10px;height:10px;background:#e67e22;border-radius:2px"></span>
@@ -1008,6 +1019,19 @@ function toggleVindmoellerLag() {{
   vindmLagAktiv = !vindmLagAktiv;
   if (vindmLagAktiv) {{ vindmLag.addTo(map); }} else {{ map.removeLayer(vindmLag); }}
   document.getElementById("vindm-check-inner").style.display = vindmLagAktiv ? "block" : "none";
+}}
+
+// Store solcelleanlæg – WMS fra BPST
+const solLag = L.tileLayer.wms(BPST_WMS, {{
+  layers: "ve:store_solcelleanlaeg",
+  format: "image/png", transparent: true, version: "1.1.1", opacity: 0.85,
+  attribution: "BPST – Bolig- og Planstyrelsen"
+}});
+let solLagAktiv = false;
+function toggleSolLag() {{
+  solLagAktiv = !solLagAktiv;
+  if (solLagAktiv) {{ solLag.addTo(map); }} else {{ map.removeLayer(solLag); }}
+  document.getElementById("sol-check-inner").style.display = solLagAktiv ? "block" : "none";
 }}
 
 // Vindmølle-lokalplaner lag
