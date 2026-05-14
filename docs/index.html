@@ -134,8 +134,7 @@
 
 <div id="topbar">
   <h1>🌊 Vandkant Boliger</h1>
-  <span class="count" id="result-count">2079 boliger inden for 200m fra kysten</span>
-  <div id="type-stats" style="display:flex;gap:14px;font-size:11px;color:#666;white-space:nowrap"></div>
+  <div id="type-stats" style="display:flex;gap:10px;font-size:12px;color:#555;white-space:nowrap;flex-shrink:0"></div>
   <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 13:48</span>
   <div class="filters">
     <div style="position:relative;display:inline-block">
@@ -972,20 +971,17 @@ function typeCountAndre(arr) { return arr.filter(b => !ALLE_KENDTE_TYPER.include
 function updateTypeStats() {
   const el = document.getElementById("type-stats");
   if (!el) return;
-  const fV  = typeCount(visibleBoliger, VILLA_TYPER),        tV  = typeCount(BOLIGER, VILLA_TYPER);
-  const fG  = typeCount(visibleBoliger, GRUND_TYPER),        tG  = typeCount(BOLIGER, GRUND_TYPER);
-  const fF  = typeCount(visibleBoliger, FRITID_TYPER),       tF  = typeCount(BOLIGER, FRITID_TYPER);
-  const fFG = typeCount(visibleBoliger, FRITIDSGRUND_TYPER), tFG = typeCount(BOLIGER, FRITIDSGRUND_TYPER);
-  const fL  = typeCount(visibleBoliger, LANDBRUG_TYPER),     tL  = typeCount(BOLIGER, LANDBRUG_TYPER);
-  const fA  = typeCountAndre(visibleBoliger),                tA  = typeCountAndre(BOLIGER);
-  const fmt = (f,t) => `<b style="color:${f<t?'#E85C2C':'#333'}">${f}</b>/${t}`;
-  const grp = (label, fMain, tMain, fSub, tSub) =>
-    `<span>${label} ${fmt(fMain,tMain)}${tSub ? ` <span style="opacity:.55">(${fmt(fSub,tSub)})</span>` : ""}</span>`;
+  const nV  = typeCount(visibleBoliger, VILLA_TYPER);
+  const nG  = typeCount(visibleBoliger, GRUND_TYPER);
+  const nF  = typeCount(visibleBoliger, FRITID_TYPER);
+  const nFG = typeCount(visibleBoliger, FRITIDSGRUND_TYPER);
+  const nL  = typeCount(visibleBoliger, LANDBRUG_TYPER);
+  const sep = `<span style="color:#ddd">|</span>`;
   el.innerHTML =
-    grp("Villa:",    fV, tV, fG,  tG) +
-    grp("Fritid:",   fF, tF, fFG, tFG) +
-    grp("Landbrug:", fL, tL, 0,   0) +
-    (tA ? grp("Andre:", fA, tA, 0, 0) : "");
+    `<span>🏠 ${nV}${nG ? ` <small style="opacity:.6">(${nG})</small>` : ""}</span>` + sep +
+    `<span>🏖️ ${nF}${nFG ? ` <small style="opacity:.6">(${nFG})</small>` : ""}</span>` + sep +
+    `<span>🌾 ${nL}</span>` +
+    `<span id="result-count" style="opacity:.55;font-size:11px"> · ${visibleBoliger.length} boliger</span>`;
 }
 
 function render() {

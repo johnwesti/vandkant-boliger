@@ -889,7 +889,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
 
 <div id="topbar">
   <h1>🌊 Vandkant Boliger</h1>
-  <span class="count" id="result-count">{len(gdf)} boliger inden for {MAX_AFSTAND_METER}m fra kysten</span>
+  <div id="type-stats" style="display:flex;gap:10px;font-size:12px;color:#555;white-space:nowrap;flex-shrink:0"></div>
   <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: {__import__("datetime").datetime.now().strftime("%d.%m.%Y %H:%M")}</span>
   <div class="filters">
     <div style="position:relative;display:inline-block">
@@ -1693,13 +1693,37 @@ function applyFilters() {{
   render();
 }}
 
+const VILLA_TYPER        = ["Villa/Parcelhus","Rækkehus","Ejerlejlighed","Villalejlighed","Andelsbolig"];
+const GRUND_TYPER        = ["Helårsgrund"];
+const FRITID_TYPER       = ["Fritidshus"];
+const FRITIDSGRUND_TYPER = ["Fritidsgrund"];
+const LANDBRUG_TYPER     = ["Landejendom"];
+const ALLE_KENDTE_TYPER  = [...VILLA_TYPER,...GRUND_TYPER,...FRITID_TYPER,...FRITIDSGRUND_TYPER,...LANDBRUG_TYPER];
+
+function typeCount(arr, typer) {{ return arr.filter(b => typer.includes(b.type)).length; }}
+
+function updateTypeStats() {{
+  const el = document.getElementById("type-stats");
+  if (!el) return;
+  const nV  = typeCount(visibleBoliger, VILLA_TYPER);
+  const nG  = typeCount(visibleBoliger, GRUND_TYPER);
+  const nF  = typeCount(visibleBoliger, FRITID_TYPER);
+  const nFG = typeCount(visibleBoliger, FRITIDSGRUND_TYPER);
+  const nL  = typeCount(visibleBoliger, LANDBRUG_TYPER);
+  const sep = `<span style="color:#ddd">|</span>`;
+  el.innerHTML =
+    `<span>🏠 ${{nV}}${{nG ? ` <small style="opacity:.6">(${{nG}})</small>` : ""}}</span>` + sep +
+    `<span>🏖️ ${{nF}}${{nFG ? ` <small style="opacity:.6">(${{nFG}})</small>` : ""}}</span>` + sep +
+    `<span>🌾 ${{nL}}</span>` +
+    `<span style="opacity:.55;font-size:11px"> · ${{visibleBoliger.length}} boliger</span>`;
+}}
+
 function render() {{
   cluster.clearLayers();
   markers = [];
   const liste = document.getElementById("kort-liste");
   liste.innerHTML = "";
-  document.getElementById("result-count").textContent =
-    visibleBoliger.length + " boliger inden for {MAX_AFSTAND_METER}m fra kysten";
+  updateTypeStats();
 
   // Sorter: tættest på vand først
   const sorted = [...visibleBoliger].sort((a,b) => a.afstand - b.afstand);
