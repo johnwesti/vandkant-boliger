@@ -971,17 +971,17 @@ function typeCountAndre(arr) { return arr.filter(b => !ALLE_KENDTE_TYPER.include
 function updateTypeStats() {
   const el = document.getElementById("type-stats");
   if (!el) return;
-  const nV  = typeCount(visibleBoliger, VILLA_TYPER);
-  const nG  = typeCount(visibleBoliger, GRUND_TYPER);
-  const nF  = typeCount(visibleBoliger, FRITID_TYPER);
-  const nFG = typeCount(visibleBoliger, FRITIDSGRUND_TYPER);
-  const nL  = typeCount(visibleBoliger, LANDBRUG_TYPER);
+  const fV  = typeCount(visibleBoliger, VILLA_TYPER),  tV  = typeCount(BOLIGER, VILLA_TYPER);
+  const fG  = typeCount(visibleBoliger, GRUND_TYPER),  tG  = typeCount(BOLIGER, GRUND_TYPER);
+  const fF  = typeCount(visibleBoliger, FRITID_TYPER), tF  = typeCount(BOLIGER, FRITID_TYPER);
+  const fFG = typeCount(visibleBoliger, FRITIDSGRUND_TYPER), tFG = typeCount(BOLIGER, FRITIDSGRUND_TYPER);
+  const fL  = typeCount(visibleBoliger, LANDBRUG_TYPER), tL = typeCount(BOLIGER, LANDBRUG_TYPER);
+  const n = (f, t) => `<b style="color:${f<t?'#E85C2C':'#333'}">${f}</b>/${t}`;
   const sep = `<span style="color:#ddd">|</span>`;
   el.innerHTML =
-    `<span>🏠 ${nV}${nG ? ` <small style="opacity:.6">(${nG})</small>` : ""}</span>` + sep +
-    `<span>🏖️ ${nF}${nFG ? ` <small style="opacity:.6">(${nFG})</small>` : ""}</span>` + sep +
-    `<span>🌾 ${nL}</span>` +
-    `<span id="result-count" style="opacity:.55;font-size:11px"> · ${visibleBoliger.length} boliger</span>`;
+    `<span>🏠 ${n(fV,tV)}${tG ? ` <small style="opacity:.6">(${n(fG,tG)})</small>` : ""}</span>` + sep +
+    `<span>🏖️ ${n(fF,tF)}${tFG ? ` <small style="opacity:.6">(${n(fFG,tFG)})</small>` : ""}</span>` + sep +
+    `<span>🌾 ${n(fL,tL)}</span>`;
 }
 
 function render() {
