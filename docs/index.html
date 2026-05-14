@@ -503,7 +503,7 @@ function drawSolLys() {
   const dato = new Date(document.getElementById("sollys-dato").value || new Date());
   const minutter = parseInt(document.getElementById("sollys-tid").value);
   dato.setHours(Math.floor(minutter/60), minutter%60, 0, 0);
-  const R = 0.25; // 250m radius
+  const R = 8000 / Math.pow(2, map.getZoom()); // skalerer med zoom
 
   // Sol-sti bue (solop til solnedgang)
   const arcPts = [];
@@ -538,7 +538,18 @@ function drawSolLys() {
 }
 
 function onSolTid() {
-  const m = parseInt(document.getElementById("sollys-tid").value);
+  let m = parseInt(document.getElementById("sollys-tid").value);
+  // Snap til solopgang/solnedgang hvis uden for dagtid
+  const datoStr = document.getElementById("sollys-dato").value;
+  if (datoStr && solLysAktiv) {
+    const dato = new Date(datoStr);
+    const c = solLysCenter || map.getCenter();
+    const times = SunCalc.getTimes(dato, c.lat, c.lng);
+    const sr = times.sunrise.getHours()*60 + times.sunrise.getMinutes();
+    const ss = times.sunset.getHours()*60  + times.sunset.getMinutes();
+    if (m < sr) { m = sr; document.getElementById("sollys-tid").value = m; }
+    if (m > ss) { m = ss; document.getElementById("sollys-tid").value = m; }
+  }
   document.getElementById("sollys-tid-lbl").textContent =
     String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0");
   if (solLysAktiv) drawSolLys();
@@ -599,8 +610,7 @@ function toggleOversvom() {
 // Matrikelkort – Datafordeler MATRIKLEN2
 const matLag = L.tileLayer.wms(
   `https://wms.datafordeler.dk/MATRIKLEN2/MatGaeldendeOgForeloebigWMS/1.0.0/WMS?username=${DF_USER}&password=${DF_PASS}`, {
-  layers: "MatrikelSkel_Gaeldende,OptagetVej_Gaeldende,Centroide_Gaeldende",
-  styles: "Roede_skel,Roed_OptagetVej,Sorte_centroider",
+  layers: "Jordstykke_Gaeldende,MatrikelSkel_Gaeldende,OptagetVej_Gaeldende",
   format: "image/png", transparent: true, version: "1.3.0", opacity: 0.8,
   attribution: "Geodatastyrelsen – Datafordeler"
 });
