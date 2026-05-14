@@ -989,8 +989,7 @@ function render() {
   markers = [];
   const liste = document.getElementById("kort-liste");
   liste.innerHTML = "";
-  document.getElementById("result-count").textContent =
-    visibleBoliger.length + " boliger inden for 200m fra kysten";
+  updateTypeStats();
 
   // Sorter: tættest på vand først
   const sorted = [...visibleBoliger].sort((a,b) => a.afstand - b.afstand);
