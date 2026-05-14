@@ -1172,11 +1172,13 @@ function toggleOversvom() {{
   syncKl("kl-oversvom", oversvomAktiv);
 }}
 
-// Matrikelkort – Datafordeler med credentials i URL
+// Matrikelkort – Datafordeler MATRIKLEN2
 const matLag = L.tileLayer.wms(
-  "https://services.datafordeler.dk/Matrikel/MatrikelGaeldendeOgForeloebigWMS/1.0.0/WMS?username=FGWXTTMBMA&password=Plandata2021!", {{
-  layers: "MatrikelGaeldendeOgForeloebigWMS", format: "image/png", transparent: true,
-  version: "1.0.0", opacity: 0.75, attribution: "Geodatastyrelsen"
+  "https://services.datafordeler.dk/MATRIKLEN2/MatGaeldendeOgForeloebigWMS/1.0.0/WMS?username=LYNZPAJIGS&password=tJqYAcw8d-c&token=4ed34c05cdeb91158ddb123f4958fb60", {{
+  layers: "MatrikelSkel_Gaeldende,OptagetVej_Gaeldende,Centroide_Gaeldende",
+  styles: "Roede_skel,Roed_OptagetVej,Sorte_centroider",
+  format: "image/png", transparent: true, version: "1.3.0", opacity: 0.8,
+  attribution: "Geodatastyrelsen – Datafordeler"
 }});
 let matAktiv = false;
 function toggleMat() {{
