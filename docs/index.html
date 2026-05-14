@@ -136,7 +136,6 @@
   <h1>🌊 Vandkant Boliger</h1>
   <span class="count" id="result-count">2079 boliger inden for 200m fra kysten</span>
   <div id="type-stats" style="display:flex;gap:14px;font-size:11px;color:#666;white-space:nowrap"></div>
-  <div id="type-stats" style="display:flex;gap:14px;font-size:11px;color:#666;white-space:nowrap"></div>
   <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 13:48</span>
   <div class="filters">
     <div style="position:relative;display:inline-block">
@@ -960,27 +959,33 @@ function applyFilters() {
   render();
 }
 
-const VILLA_TYPER       = ["Villa/Parcelhus","Rækkehus","Ejerlejlighed","Villalejlighed","Andelsbolig"];
-const GRUND_TYPER       = ["Helårsgrund"];
-const FRITID_TYPER      = ["Fritidshus"];
-const FRITIDSGRUND_TYPER= ["Fritidsgrund"];
-const LAND_TYPER        = ["Landejendom"];
+const VILLA_TYPER        = ["Villa/Parcelhus","Rækkehus","Ejerlejlighed","Villalejlighed","Andelsbolig"];
+const GRUND_TYPER        = ["Helårsgrund"];
+const FRITID_TYPER       = ["Fritidshus"];
+const FRITIDSGRUND_TYPER = ["Fritidsgrund"];
+const LANDBRUG_TYPER     = ["Landejendom"];
+const ALLE_KENDTE_TYPER  = [...VILLA_TYPER, ...GRUND_TYPER, ...FRITID_TYPER, ...FRITIDSGRUND_TYPER, ...LANDBRUG_TYPER];
 
 function typeCount(arr, typer) { return arr.filter(b => typer.includes(b.type)).length; }
+function typeCountAndre(arr) { return arr.filter(b => !ALLE_KENDTE_TYPER.includes(b.type)).length; }
 
 function updateTypeStats() {
   const el = document.getElementById("type-stats");
   if (!el) return;
-  const fV = typeCount(visibleBoliger, VILLA_TYPER),  tV = typeCount(BOLIGER, VILLA_TYPER);
-  const fG = typeCount(visibleBoliger, GRUND_TYPER),  tG = typeCount(BOLIGER, GRUND_TYPER);
-  const fF = typeCount(visibleBoliger, FRITID_TYPER), tF = typeCount(BOLIGER, FRITID_TYPER);
-  const fFG= typeCount(visibleBoliger, FRITIDSGRUND_TYPER), tFG = typeCount(BOLIGER, FRITIDSGRUND_TYPER);
-  const fL = typeCount(visibleBoliger, LAND_TYPER),   tL = typeCount(BOLIGER, LAND_TYPER);
+  const fV  = typeCount(visibleBoliger, VILLA_TYPER),        tV  = typeCount(BOLIGER, VILLA_TYPER);
+  const fG  = typeCount(visibleBoliger, GRUND_TYPER),        tG  = typeCount(BOLIGER, GRUND_TYPER);
+  const fF  = typeCount(visibleBoliger, FRITID_TYPER),       tF  = typeCount(BOLIGER, FRITID_TYPER);
+  const fFG = typeCount(visibleBoliger, FRITIDSGRUND_TYPER), tFG = typeCount(BOLIGER, FRITIDSGRUND_TYPER);
+  const fL  = typeCount(visibleBoliger, LANDBRUG_TYPER),     tL  = typeCount(BOLIGER, LANDBRUG_TYPER);
+  const fA  = typeCountAndre(visibleBoliger),                tA  = typeCountAndre(BOLIGER);
   const fmt = (f,t) => `<b style="color:${f<t?'#E85C2C':'#333'}">${f}</b>/${t}`;
+  const grp = (label, fMain, tMain, fSub, tSub) =>
+    `<span>${label} ${fmt(fMain,tMain)}${tSub ? ` <span style="opacity:.55">(${fmt(fSub,tSub)})</span>` : ""}</span>`;
   el.innerHTML =
-    `<span>Villa: ${fmt(fV,tV)}${tG ? ` <span style="opacity:.6">(${fmt(fG,tG)})</span>` : ""}</span>` +
-    `<span>Fritid: ${fmt(fF,tF)}${tFG ? ` <span style="opacity:.6">(${fmt(fFG,tFG)})</span>` : ""}</span>` +
-    `<span>Land: ${fmt(fL,tL)}</span>`;
+    grp("Villa:",    fV, tV, fG,  tG) +
+    grp("Fritid:",   fF, tF, fFG, tFG) +
+    grp("Landbrug:", fL, tL, 0,   0) +
+    (tA ? grp("Andre:", fA, tA, 0, 0) : "");
 }
 
 function render() {
