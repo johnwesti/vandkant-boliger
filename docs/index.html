@@ -141,7 +141,7 @@
 <div id="topbar">
   <h1>🌊 Vandkant Boliger</h1>
   <div id="type-stats" style="display:flex;gap:10px;font-size:12px;color:#555;white-space:nowrap;flex-shrink:0"></div>
-  <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 17:49</span>
+  <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 18:09</span>
   <div class="filters">
     <div style="position:relative;display:inline-block">
       <button id="type-btn" onclick="toggleTypeMenu()" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
@@ -501,7 +501,7 @@ function drawSolLys() {
   const dato = new Date(document.getElementById("sollys-dato").value || new Date());
   const minutter = parseInt(document.getElementById("sollys-tid").value);
   dato.setHours(Math.floor(minutter/60), minutter%60, 0, 0);
-  const R = 4000 / Math.pow(2, map.getZoom()); // fast visuel størrelse uanset zoom
+  const R = 0.25; // 250m radius
 
   // Sol-sti bue (solop til solnedgang)
   const arcPts = [];
@@ -536,18 +536,7 @@ function drawSolLys() {
 }
 
 function onSolTid() {
-  let m = parseInt(document.getElementById("sollys-tid").value);
-  // Snap til solopgang/solnedgang hvis uden for dagtid
-  const datoStr = document.getElementById("sollys-dato").value;
-  if (datoStr && solLysAktiv) {
-    const dato = new Date(datoStr);
-    const c = solLysCenter || map.getCenter();
-    const times = SunCalc.getTimes(dato, c.lat, c.lng);
-    const sr = times.sunrise.getHours()*60 + times.sunrise.getMinutes();
-    const ss = times.sunset.getHours()*60  + times.sunset.getMinutes();
-    if (m < sr) { m = sr; document.getElementById("sollys-tid").value = m; }
-    if (m > ss) { m = ss; document.getElementById("sollys-tid").value = m; }
-  }
+  const m = parseInt(document.getElementById("sollys-tid").value);
   document.getElementById("sollys-tid-lbl").textContent =
     String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0");
   if (solLysAktiv) drawSolLys();
@@ -567,7 +556,6 @@ function toggleSolLys() {
     solLysGroup.addTo(map);
     document.getElementById("sollys-dato").oninput = drawSolLys;
     map.on("click", function(e) { if(solLysAktiv) { solLysCenter = e.latlng; drawSolLys(); } });
-    map.on("zoomend", function() { if(solLysAktiv) drawSolLys(); });
   } else {
     map.removeLayer(solLysGroup);
     solLysCenter = null;
@@ -608,8 +596,9 @@ function toggleOversvom() {
 
 // Matrikelkort – Datafordeler MATRIKLEN2
 const matLag = L.tileLayer.wms(
-  `https://wms.datafordeler.dk/MATRIKLEN2/MatGaeldendeOgForeloebigWMS/1.0.0/WMS?username=${DF_USER}&password=${DF_PASS}`, {
-  layers: "Jordstykke_Gaeldende,MatrikelSkel_Gaeldende,OptagetVej_Gaeldende",
+  "https://services.datafordeler.dk/MATRIKLEN2/MatGaeldendeOgForeloebigWMS/1.0.0/WMS?username=LYNZPAJIGS&password=tJqYAcw8d-c&token=4ed34c05cdeb91158ddb123f4958fb60", {
+  layers: "MatrikelSkel_Gaeldende,OptagetVej_Gaeldende,Centroide_Gaeldende",
+  styles: "Roede_skel,Roed_OptagetVej,Sorte_centroider",
   format: "image/png", transparent: true, version: "1.3.0", opacity: 0.8,
   attribution: "Geodatastyrelsen – Datafordeler"
 });
