@@ -21,7 +21,7 @@
     padding: 10px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.3);
   }
   #topbar h1 { font-size: 16px; font-weight: 700; letter-spacing: .3px; }
-  #topbar .count { font-size: 13px; opacity: .85; white-space: nowrap; display: inline-block; }
+  #topbar .count { font-size: 13px; opacity: .85; }
   #topbar .filters { margin-left: auto; display: flex; gap: 8px; align-items: center; }
   #topbar select, #topbar input {
     border: none; border-radius: 6px; padding: 5px 10px;
@@ -31,10 +31,9 @@
   #topbar select option { color: #222; background: white; }
   #topbar input::placeholder { color: rgba(255,255,255,.6); }
 
-  #map { position: fixed; top: 48px; left: 0; bottom: 0; right: 0; }
+  #map { position: fixed; top: 48px; left: 0; bottom: 0; right: 380px; }
 
   #sidebar {
-    display: none;
     position: fixed; top: 48px; right: 0; bottom: 0; width: 380px;
     background: white; overflow-y: auto;
     border-left: 1px solid #e0e0e0;
@@ -141,19 +140,8 @@
 
 <div id="topbar">
   <h1>🌊 Vandkant Boliger</h1>
-<<<<<<< Updated upstream
   <span class="count" id="result-count">2079 boliger inden for 200m fra kysten</span>
-  <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 12:42</span>
-=======
-<<<<<<< Updated upstream
-  <span class="count" id="result-count">2081 boliger inden for 200m fra kysten</span>
-  <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 06:41</span>
-=======
-  <span class="count" id="result-count">2073 boliger inden for 200m fra kysten</span>
-  <span class="count" id="summary-count" style="font-size:12px;white-space:nowrap;opacity:.8">Villa: 0/0 (0/0) · Fritid: 0/0 (0/0) · Landbrug: 0/0 (0/0)</span>
-  <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 00:47</span>
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+  <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 13:09</span>
   <div class="filters">
     <div style="position:relative;display:inline-block">
       <button id="type-btn" onclick="toggleTypeMenu()" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
@@ -174,7 +162,7 @@
 
   </div>
   <!-- Filter panel -->
-  <div id="filter-panel" style="display:none;position:fixed;top:64px;right:14px;width:360px;background:rgba(255,255,255,0.96);border:1px solid rgba(0,0,0,.08);border-radius:18px;z-index:999;box-shadow:0 16px 40px rgba(0,0,0,.18);flex-direction:column;max-height:calc(100vh - 90px);overflow:hidden;backdrop-filter:blur(8px)">
+  <div id="filter-panel" style="display:none;position:fixed;top:48px;right:380px;width:420px;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 0 10px;z-index:999;box-shadow:-4px 4px 16px rgba(0,0,0,.15);flex-direction:column;max-height:calc(100vh - 48px)">
 
     <!-- Faner -->
     <div style="display:flex;border-bottom:2px solid #eee">
@@ -374,7 +362,7 @@
 </div>
 
 <!-- Flydende kortlag-knapper (Boliga-stil) – venstre side af kortet -->
-<div id="kortlag-panel" style="position:fixed;left:10px;top:140px;z-index:900;display:flex;flex-direction:column;gap:8px">
+<div id="kortlag-panel" style="position:fixed;left:10px;top:110px;z-index:900;display:flex;flex-direction:column;gap:8px">
   <div id="kl-luftfoto" onclick="toggleLuftfoto()"         class="kl-btn" title="Luftfoto"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3a2 2 0 00-2 2v14a2 2 0 002 2h18a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H3V5h18v14zm-8-6l-3-4-4 5h14l-4-5-3 4z"/></svg></div>
   <div id="kl-solind"   onclick="toggleSolLys()"           class="kl-btn" title="Solens bane">☀️</div>
   <div id="kl-oversvom" onclick="toggleOversvom()"         class="kl-btn" title="Oversvømmelse"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm-1 16.93V13H9l3-6v5h2l-3 6.93z"/></svg></div>
@@ -394,31 +382,6 @@ const BOLIGER = [{"lat": 55.99797, "lng": 8.13349, "adresse": "Mamrelund 37", "b
 
 // Byg type-dropdown dynamisk fra data
 const alleTyper = [...new Set(BOLIGER.map(b => b.type))].sort();
-const KATEGORI_TYPER = {
-  Villa: ["Villa/Parcelhus", "Villalejlighed", "Rækkehus"],
-  Fritid: ["Fritidshus", "Fritidsgrund"],
-  Landbrug: ["Landejendom"]
-};
-const KATEGORI_REKKEFOLGE = ["Villa", "Fritid", "Landbrug"];
-const kategoriTotal = {};
-KATEGORI_REKKEFOLGE.forEach(k => {
-  kategoriTotal[k] = BOLIGER.filter(b => KATEGORI_TYPER[k].includes(b.type)).length;
-});
-
-function updateSummary() {
-  const summary = KATEGORI_REKKEFOLGE.map(k => {
-    const typer = KATEGORI_TYPER[k];
-    const selectedTypes = Array.from(document.querySelectorAll("#type-menu input:checked"))
-      .map(i => i.value);
-    const checkedCount = typer.filter(t => selectedTypes.includes(t)).length;
-    const visibleCount = visibleBoliger.filter(b => typer.includes(b.type)).length;
-    const totalCount = kategoriTotal[k] || 0;
-    return `${k}: ${visibleCount}/${totalCount} (${checkedCount}/${typer.length})`;
-  }).join(" · ");
-  const el = document.getElementById("summary-count");
-  if (el) el.textContent = summary;
-}
-
 const typeContainer = document.getElementById("type-checkboxes");
 alleTyper.forEach(type => {
   const label = document.createElement("label");
@@ -973,7 +936,6 @@ function render() {
   liste.innerHTML = "";
   document.getElementById("result-count").textContent =
     visibleBoliger.length + " boliger inden for 200m fra kysten";
-  updateSummary();
 
   // Sorter: tættest på vand først
   const sorted = [...visibleBoliger].sort((a,b) => a.afstand - b.afstand);
