@@ -1204,7 +1204,8 @@ function opdaterByBadge() {
   document.getElementById('by-info').textContent = n > 0 ? `${n} ekskluderet` : 'Alle medtaget';
 }
 
-applyFilters();
+try { applyFilters(); } catch(e) { console.warn("applyFilters init:", e); }
+updateTypeStats();
 </script>
 </body>
 </html>
