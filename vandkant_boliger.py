@@ -684,6 +684,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js"></script>
 <style>
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; }}
@@ -931,13 +932,13 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
           </span>
         </label>
 
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleSolInd()">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleSolLys()">
           <span id="solind-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #f39c12;display:flex;align-items:center;justify-content:center;flex-shrink:0">
             <span id="solind-check-inner" style="display:none;width:10px;height:10px;background:#f39c12;border-radius:2px"></span>
           </span>
           <span style="display:flex;flex-direction:column">
             <span style="font-weight:600;font-size:13px">☀️ Solens bane</span>
-            <span style="font-size:11px;color:#888">BPST – årlig solindstråling på tage</span>
+            <span style="font-size:11px;color:#888">SunCalc – sol-sti for valgt punkt og dato</span>
           </span>
         </label>
 
@@ -1017,10 +1018,28 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
 
 <div id="map"></div>
 
+<!-- Sollys-kontrol panel -->
+<div id="sollys-panel" style="display:none;position:fixed;top:60px;left:60px;z-index:950;background:white;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:12px 16px;min-width:260px">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <span style="font-size:22px">☀️</span>
+    <div>
+      <div style="font-weight:600;font-size:13px">Solens bane</div>
+      <div style="font-size:11px;color:#888">Klik på kortet for at vælge punkt</div>
+    </div>
+    <button onclick="toggleSolLys()" style="margin-left:auto;border:none;background:none;font-size:16px;cursor:pointer;color:#888">✕</button>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+    <input type="date" id="sollys-dato" style="flex:1;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px">
+    <span id="sollys-tid-lbl" style="font-weight:700;font-size:14px;min-width:40px;text-align:center">12:00</span>
+  </div>
+  <input type="range" id="sollys-tid" min="0" max="1440" value="720" step="10" style="width:100%;accent-color:#f5a623" oninput="onSolTid()">
+  <div id="sollys-info" style="font-size:11px;color:#888;margin-top:6px;text-align:center"></div>
+</div>
+
 <!-- Flydende kortlag-knapper (Boliga-stil) – venstre side af kortet -->
 <div id="kortlag-panel" style="position:fixed;left:10px;top:110px;z-index:900;display:flex;flex-direction:column;gap:8px">
   <div id="kl-luftfoto" onclick="toggleLuftfoto()"         class="kl-btn" title="Luftfoto"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3a2 2 0 00-2 2v14a2 2 0 002 2h18a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H3V5h18v14zm-8-6l-3-4-4 5h14l-4-5-3 4z"/></svg></div>
-  <div id="kl-solind"   onclick="toggleSolInd()"           class="kl-btn" title="Solens bane"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 110 10A5 5 0 0112 7zm0-2a7 7 0 100 14A7 7 0 0012 5zm0-3a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm0 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm9-9a1 1 0 110 2h-1a1 1 0 110-2h1zM4 12a1 1 0 110 2H3a1 1 0 110-2h1zm14.66-6.07a1 1 0 010 1.41l-.7.71a1 1 0 11-1.42-1.42l.71-.7a1 1 0 011.41 0zM7.05 17.66a1 1 0 010 1.41l-.71.71a1 1 0 01-1.41-1.42l.7-.7a1 1 0 011.42 0zm11.32.7a1 1 0 01-1.41 0l-.71-.7a1 1 0 011.42-1.42l.7.71a1 1 0 010 1.41zM5.34 7.05a1 1 0 01-1.41 0l-.71-.71a1 1 0 011.42-1.41l.7.7a1 1 0 010 1.42z"/></svg></div>
+  <div id="kl-solind"   onclick="toggleSolLys()"           class="kl-btn" title="Solens bane">☀️</div>
   <div id="kl-oversvom" onclick="toggleOversvom()"         class="kl-btn" title="Oversvømmelse"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm-1 16.93V13H9l3-6v5h2l-3 6.93z"/></svg></div>
   <div id="kl-stoj"     onclick="toggleStoj()"             class="kl-btn" title="Støj"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></div>
   <div id="kl-mat"      onclick="toggleMat()"              class="kl-btn" title="Matrikler"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4a2 2 0 00-2 2v16a2 2 0 002 2h16a2 2 0 002-2V4a2 2 0 00-2-2zm0 18H4V4h16v16zM6 6h5v5H6zm7 0h5v5h-5zm-7 7h5v5H6zm7 0h5v5h-5z"/></svg></div>
@@ -1130,18 +1149,89 @@ function toggleSolLag() {{
   syncKl("kl-sol", solLagAktiv);
 }}
 
-// Solindstråling på tage – BPST tage_udst
-const solIndLag = L.tileLayer.wms(BPST_WMS, {{
-  layers: "tage_udst", format: "image/png", transparent: true, version: "1.1.1", opacity: 0.75,
-  attribution: "BPST"
-}});
-let solIndAktiv = false;
-function toggleSolInd() {{
-  solIndAktiv = !solIndAktiv;
-  if (solIndAktiv) {{ solIndLag.addTo(map); }} else {{ map.removeLayer(solIndLag); }}
+// ── Solens bane (SunCalc) ──────────────────────────────────────────
+const solLysGroup = L.featureGroup();
+let solLysAktiv = false;
+let solLysCenter = null;
+
+function sunPosToLatLng(lat, lng, azimuth, radiusKm) {{
+  const R = 6371, d = radiusKm / R;
+  const lat1 = lat * Math.PI / 180;
+  const brg = azimuth + Math.PI; // SunCalc måler fra syd
+  const lat2 = Math.asin(Math.sin(lat1)*Math.cos(d) + Math.cos(lat1)*Math.sin(d)*Math.cos(brg));
+  const lng2 = lng * Math.PI / 180 + Math.atan2(Math.sin(brg)*Math.sin(d)*Math.cos(lat1), Math.cos(d)-Math.sin(lat1)*Math.sin(lat2));
+  return L.latLng(lat2*180/Math.PI, lng2*180/Math.PI);
+}}
+
+function drawSolLys() {{
+  solLysGroup.clearLayers();
+  const c = solLysCenter || map.getCenter();
+  const lat = c.lat, lng = c.lng;
+  const dato = new Date(document.getElementById("sollys-dato").value || new Date());
+  const minutter = parseInt(document.getElementById("sollys-tid").value);
+  dato.setHours(Math.floor(minutter/60), minutter%60, 0, 0);
+  const R = 0.25; // 250m radius
+
+  // Sol-sti bue (solop til solnedgang)
+  const arcPts = [];
+  for (let m = 0; m < 1440; m += 5) {{
+    const t = new Date(dato); t.setHours(0,m,0,0);
+    const pos = SunCalc.getPosition(t, lat, lng);
+    if (pos.altitude > 0.01) arcPts.push(sunPosToLatLng(lat, lng, pos.azimuth, R));
+  }}
+  if (arcPts.length > 1)
+    L.polyline(arcPts, {{color:"#f5c842", weight:2, opacity:0.85, dashArray:"6,4"}}).addTo(solLysGroup);
+
+  // Solens aktuelle position
+  const pos = SunCalc.getPosition(dato, lat, lng);
+  const times = SunCalc.getTimes(dato, lat, lng);
+  if (pos.altitude > 0) {{
+    const sunPt = sunPosToLatLng(lat, lng, pos.azimuth, R);
+    // Sollinje
+    L.polyline([L.latLng(lat,lng), sunPt], {{color:"#f5c842", weight:2, opacity:0.9}}).addTo(solLysGroup);
+    // Skyggelinje
+    L.polyline([L.latLng(lat,lng), sunPosToLatLng(lat, lng, pos.azimuth+Math.PI, R*0.7)],
+      {{color:"#aaa", weight:3, opacity:0.6}}).addTo(solLysGroup);
+    // Sol-ikon
+    L.marker(sunPt, {{icon:L.divIcon({{html:"<div style='font-size:26px;line-height:1;filter:drop-shadow(0 1px 3px #f5a623)'>☀️</div>", iconAnchor:[13,13], className:""}})}} ).addTo(solLysGroup);
+    const alt = Math.round(pos.altitude * 180/Math.PI);
+    document.getElementById("sollys-info").textContent =
+      `Højde: ${{alt}}° · Op: ${{times.sunrise.toLocaleTimeString("da-DK",{{hour:"2-digit",minute:"2-digit"}})}} · Ned: ${{times.sunset.toLocaleTimeString("da-DK",{{hour:"2-digit",minute:"2-digit"}})}}`;
+  }} else {{
+    document.getElementById("sollys-info").textContent = "Solen er under horisonten";
+  }}
+  // Centerpunkt
+  L.circleMarker(L.latLng(lat,lng), {{radius:6, color:"#333", fillColor:"#fff", fillOpacity:1, weight:2}}).addTo(solLysGroup);
+}}
+
+function onSolTid() {{
+  const m = parseInt(document.getElementById("sollys-tid").value);
+  document.getElementById("sollys-tid-lbl").textContent =
+    String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0");
+  if (solLysAktiv) drawSolLys();
+}}
+
+function toggleSolLys() {{
+  solLysAktiv = !solLysAktiv;
+  const panel = document.getElementById("sollys-panel");
+  panel.style.display = solLysAktiv ? "block" : "none";
+  if (solLysAktiv) {{
+    // Sæt dags dato som default
+    const d = new Date();
+    document.getElementById("sollys-dato").value = d.toISOString().substring(0,10);
+    const m = d.getHours()*60 + d.getMinutes();
+    document.getElementById("sollys-tid").value = m;
+    onSolTid();
+    solLysGroup.addTo(map);
+    document.getElementById("sollys-dato").oninput = drawSolLys;
+    map.on("click", function(e) {{ if(solLysAktiv) {{ solLysCenter = e.latlng; drawSolLys(); }} }});
+  }} else {{
+    map.removeLayer(solLysGroup);
+    solLysCenter = null;
+  }}
   const ci = document.getElementById("solind-check-inner");
-  if (ci) ci.style.display = solIndAktiv ? "block" : "none";
-  syncKl("kl-solind", solIndAktiv);
+  if (ci) ci.style.display = solLysAktiv ? "block" : "none";
+  syncKl("kl-solind", solLysAktiv);
 }}
 
 // Vejstøj – Vejdirektoratets WMS
