@@ -168,6 +168,7 @@ CACHE_KYST_FIL    = "cache_kystlinje.pkl"       # Kystlinje (ændrer sig sjælde
 CACHE_BOLIGER_FIL = "cache_boliger.pkl"          # Boligannoncer
 CACHE_BOLIGER_MAX_ALDER_TIMER = 12               # Genhent boliger hvis cachen er ældre end X timer
 CACHE_VINDM_FIL   = "cache_vindmoeller.pkl"      # Vindmøller (ændrer sig sjældent)
+CACHE_SOL_FIL     = "cache_solceller.pkl"        # Solcelleanlæg (ændrer sig sjældent)
 
 # ─────────────────────────────────────────────
 # CACHE-HJÆLPEFUNKTIONER
@@ -342,6 +343,66 @@ def hent_vindmoeller():
 
     gdf = gpd.GeoDataFrame(geometry=punkter, crs="EPSG:4326").to_crs(epsg=25832)
     print(f"    ✓ {len(gdf)} vindmøller hentet")
+    return gdf
+
+
+def hent_solceller():
+    """
+    Henter store solcelleanlæg fra OpenStreetMap via Overpass API.
+    Returnerer en GeoDataFrame med solcellepunkter i UTM32N (EPSG:25832).
+    """
+    print("\n[1c/4] Henter solcelleanlæg fra OpenStreetMap...")
+
+    query = """
+    [out:json][timeout:120];
+    (
+      way["power"="plant"]["plant:source"="solar"](54.5,7.5,58.0,15.7);
+      relation["power"="plant"]["plant:source"="solar"](54.5,7.5,58.0,15.7);
+      way["power"="generator"]["generator:source"="solar"](54.5,7.5,58.0,15.7);
+    );
+    out center;
+    """
+
+    headers = {
+        "User-Agent": "vandkant-boliger-script/1.0 (research project)",
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    servere = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    ]
+
+    r = None
+    for overpass_url in servere:
+        try:
+            print(f"    → Prøver {overpass_url} ...")
+            r = requests.post(overpass_url, data={"data": query}, headers=headers, timeout=180)
+            r.raise_for_status()
+            break
+        except requests.exceptions.RequestException as e:
+            print(f"    ⚠ Fejl ({e}) – prøver næste server...")
+            r = None
+
+    if r is None:
+        raise RuntimeError("Alle Overpass-servere fejlede ved hentning af solcelleanlæg.")
+
+    data = r.json()
+    from shapely.geometry import Point
+    punkter = []
+    for el in data["elements"]:
+        if el["type"] == "node":
+            punkter.append(Point(el["lon"], el["lat"]))
+        elif "center" in el:
+            punkter.append(Point(el["center"]["lon"], el["center"]["lat"]))
+
+    if not punkter:
+        raise RuntimeError("Ingen solcelleanlæg hentet fra OSM.")
+
+    gdf = gpd.GeoDataFrame(geometry=punkter, crs="EPSG:4326").to_crs(epsg=25832)
+    print(f"    ✓ {len(gdf)} solcelleanlæg hentet")
     return gdf
 
 
@@ -593,13 +654,24 @@ def beregn_afstand_vindmoeller(gdf, vindm_gdf):
     return gdf
 
 
+def beregn_afstand_solceller(gdf, sol_gdf):
+    """Tilføjer kolonne afstand_sol_m: afstand til nærmeste solcelleanlæg (meter)."""
+    print(f"\n[3c/4] Beregner afstand til nærmeste solcelleanlæg for {len(gdf)} boliger...")
+    samlet = sol_gdf.geometry.union_all()
+    gdf = gdf.copy()
+    afstande = [round(samlet.distance(geom), 0) for geom in tqdm(gdf.geometry, desc="  Solcelleafstand")]
+    gdf["afstand_sol_m"] = afstande
+    print(f"  ✓ Afstande beregnet (median {int(gdf['afstand_sol_m'].median())}m)")
+    return gdf
+
+
 # ─────────────────────────────────────────────
 # TRIN 4: Gem resultater
 # ─────────────────────────────────────────────
 def gem_csv(gdf, filnavn=OUTPUT_CSV):
     """Gemmer resultater som CSV."""
     kolonner = ["adresse", "postnummer", "by", "pris", "type", "kvm",
-                "vaerelser", "byggeaar", "energimaerke", "liggetid", "afstand_m", "afstand_vindm_m", "lat", "lng", "url"]
+                "vaerelser", "byggeaar", "energimaerke", "liggetid", "afstand_m", "afstand_vindm_m", "afstand_sol_m", "lat", "lng", "url"]
     
     # Behold kun kolonner der faktisk findes
     kolonner = [k for k in kolonner if k in gdf.columns]
@@ -622,6 +694,7 @@ def gem_boliger_json(gdf, filnavn="boliger.json"):
             "type":     str(row.get("type", "")),
             "afstand":  float(row["afstand_m"]),
             "vindm":    int(row["afstand_vindm_m"]) if pd.notna(row.get("afstand_vindm_m")) else 0,
+            "sol":      int(row["afstand_sol_m"]) if pd.notna(row.get("afstand_sol_m")) else 0,
             "liggetid": int(row["liggetid"]) if pd.notna(row.get("liggetid")) and row.get("liggetid") else 0,
         })
     with open(filnavn, "w", encoding="utf-8") as f:
@@ -656,6 +729,7 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
             "energi":    str(row.get("energimaerke", "") or ""),
             "afstand":   float(row["afstand_m"]),
             "vindm":     int(row["afstand_vindm_m"]) if pd.notna(row.get("afstand_vindm_m")) else 0,
+            "sol":       int(row["afstand_sol_m"]) if pd.notna(row.get("afstand_sol_m")) else 0,
             "liggetid":  int(row["liggetid"]) if pd.notna(row.get("liggetid")) and row.get("liggetid") else 0,
             "url":       str(row.get("url", "#")),
             "ouAddress": str(row.get("ouAddress", "")),
@@ -884,7 +958,12 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
       <div class="filter-group">
         <label>Min. afstand til vindmølle</label>
         <div class="range-row"><span id="lbl-vindm">0 m (alle)</span></div>
-        <input type="range" id="slider-vindm" min="0" max="3000" step="100" value="0" style="width:100%" oninput="updateSlider('vindm')">
+        <input type="range" id="slider-vindm" min="0" max="5000" step="100" value="0" style="width:100%" oninput="updateSlider('vindm')">
+      </div>
+      <div class="filter-group">
+        <label>Min. afstand til solcelleanlæg</label>
+        <div class="range-row"><span id="lbl-sol">0 m (alle)</span></div>
+        <input type="range" id="slider-sol" min="0" max="5000" step="100" value="0" style="width:100%" oninput="updateSlider('sol')">
       </div>
       <div style="margin-top:10px;font-size:12px;color:#888;text-align:center" id="filter-result-info"></div>
     </div>
@@ -1093,8 +1172,11 @@ function markerKlasse(a) {{
 }}
 
 // Kort – to baselayers (topo og luftfoto)
-const topoLag = L.tileLayer("https://{{s}}.basemaps.cartocdn.com/rastertiles/voyager/{{z}}/{{x}}/{{y}}{{r}}.png", {{
-  attribution: "© OpenStreetMap © CARTO", subdomains: "abcd", maxZoom: 19
+const DF_USER = "LYNZPAJIGS", DF_PASS = "tJqYAcw8d-c";
+const topoLag = L.tileLayer.wms(
+  `https://services.datafordeler.dk/DKskaermkort/topo_skaermkort/1.0.0/wms?username=${{DF_USER}}&password=${{DF_PASS}}`, {{
+  layers: "dtk_skaermkort_daempet", format: "image/png", transparent: false,
+  version: "1.3.0", attribution: "© SDFI", maxZoom: 20
 }});
 const luftfotoLag = L.tileLayer(
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}", {{
@@ -1249,9 +1331,10 @@ function toggleStoj() {{
 }}
 
 // Oversvømmelsesrisiko – Klimatilpasning.dk
-const oversvomLag = L.tileLayer.wms("https://www.klimatilpasning.dk/service/wms/", {{
-  layers: "havvand_20cm", format: "image/png", transparent: true, version: "1.1.1", opacity: 0.6,
-  attribution: "Klimatilpasning.dk"
+const oversvomLag = L.tileLayer.wms(
+  `https://wms.datafordeler.dk/DHMNedboer/dhm/1.0.0/WMS?username=${{DF_USER}}&password=${{DF_PASS}}`, {{
+  layers: "dhm_kote_0_5_m", format: "image/png", transparent: true, version: "1.3.0", opacity: 0.65,
+  attribution: "© Styrelsen for Dataforsyning og Infrastruktur"
 }});
 let oversvomAktiv = false;
 function toggleOversvom() {{
@@ -1533,21 +1616,25 @@ function updateSlider(type) {{
   }} else if (type === 'vindm') {{
     const v = parseInt(document.getElementById("slider-vindm").value);
     document.getElementById("lbl-vindm").textContent = v === 0 ? "0 m (alle)" : "mindst " + v.toLocaleString("da-DK") + " m";
+  }} else if (type === 'sol') {{
+    const v = parseInt(document.getElementById("slider-sol").value);
+    document.getElementById("lbl-sol").textContent = v === 0 ? "0 m (alle)" : "mindst " + v.toLocaleString("da-DK") + " m";
   }}
   applyFilters();
 }}
 
 function nulstilFiltre() {{
   document.getElementById("slider-minpris").value = 0;
-  document.getElementById("slider-maxpris").value = 40000000;
+  document.getElementById("slider-maxpris").value = 10000000;
   document.getElementById("slider-minkvm").value = 0;
   document.getElementById("slider-maxkvm").value = 500;
   document.getElementById("slider-mingrund").value = 0;
   document.getElementById("slider-maxgrund").value = 10000;
-  document.getElementById("slider-minlig").value = 0;
+  document.getElementById("slider-minlig").value = 1;
   document.getElementById("slider-maxlig").value = 365;
   document.getElementById("slider-vindm").value = 0;
-  ['pris','kvm','grund','lig','vindm'].forEach(updateSlider);
+  document.getElementById("slider-sol").value = 0;
+  ['pris','kvm','grund','lig','vindm','sol'].forEach(updateSlider);
 }}
 
 function toggleTypeMenu() {{
@@ -1574,6 +1661,7 @@ function applyFilters() {{
   const minlig    = parseInt(document.getElementById("slider-minlig")?.value)   || 0;
   const maxlig    = parseInt(document.getElementById("slider-maxlig")?.value)   || 365;
   const minvindm  = parseInt(document.getElementById("slider-vindm")?.value)    || 0;
+  const minsol    = parseInt(document.getElementById("slider-sol")?.value)      || 0;
   const maxPrisEffektiv  = maxpris  >= 40000000 ? Infinity : maxpris;
   const maxKvmEffektiv   = maxkvm   >= 500      ? Infinity : maxkvm;
   const maxGrundEffektiv = maxgrund >= 10000    ? Infinity : maxgrund;
@@ -1590,6 +1678,7 @@ function applyFilters() {{
     (b.grundkvm === 0 || (b.grundkvm >= mingrund && b.grundkvm <= maxGrundEffektiv)) &&
     (b.liggetid === 0 || (b.liggetid >= minlig && b.liggetid <= maxLigEffektiv)) &&
     (minvindm === 0 || b.vindm >= minvindm) &&
+    (minsol === 0 || b.sol >= minsol) &&
     !ekskl.has(String(b.pnr))
   );
   
@@ -1840,8 +1929,8 @@ function opdaterByBadge() {{
 def main():
     global MAX_AFSTAND_METER, BRUG_CACHE
     parser = argparse.ArgumentParser(description="Find boliger tæt på dansk kyst")
-    parser.add_argument("--refresh", choices=["alle", "boliger", "kyst"],
-                        help="Tving genhentning: 'alle', 'boliger' eller 'kyst'")
+    parser.add_argument("--refresh", choices=["alle", "boliger", "kyst", "vindm", "sol"],
+                        help="Tving genhentning: 'alle', 'boliger', 'kyst', 'vindm' eller 'sol'")
     parser.add_argument("--afstand", type=int, default=None,
                         help=f"Max afstand til kyst i meter (default: {MAX_AFSTAND_METER})")
     parser.add_argument("--ingen-boliger", action="store_true",
@@ -1869,6 +1958,10 @@ def main():
         if os.path.exists(CACHE_VINDM_FIL):
             os.remove(CACHE_VINDM_FIL)
             print(f"🗑  Cache slettet: {CACHE_VINDM_FIL}")
+    if args.refresh in ("alle", "sol"):
+        if os.path.exists(CACHE_SOL_FIL):
+            os.remove(CACHE_SOL_FIL)
+            print(f"🗑  Cache slettet: {CACHE_SOL_FIL}")
 
     print("=" * 60)
     print("  Ejendomme til salg max 200m fra danske farvande")
@@ -1914,6 +2007,23 @@ def main():
     else:
         print("[1b/4] Vindmøller indlæst fra cache ✓")
 
+    # 1c. Solcelleanlæg (med cache + repo-backup)
+    SOL_BACKUP = "sol_backup.pkl"
+    sol_gdf = None
+    if BRUG_CACHE:
+        sol_gdf = indlæs_cache(CACHE_SOL_FIL)
+    if sol_gdf is None and os.path.exists(SOL_BACKUP):
+        print("[1c/4] Solcelleanlæg indlæst fra repo-backup ✓")
+        sol_gdf = indlæs_cache(SOL_BACKUP)
+    if sol_gdf is None:
+        sol_gdf = hent_solceller()
+        if BRUG_CACHE:
+            gem_cache(sol_gdf, CACHE_SOL_FIL)
+        gem_cache(sol_gdf, SOL_BACKUP)
+        print(f"    💾 Repo-backup gemt: {SOL_BACKUP} (commit dette til git)")
+    else:
+        print("[1c/4] Solcelleanlæg indlæst fra cache ✓")
+
     # 2. Boligannoncer (med cache)
     boliger = None
     if BRUG_CACHE:
@@ -1947,6 +2057,9 @@ def main():
 
     # 3b. Beregn afstand til nærmeste vindmølle
     resultat = beregn_afstand_vindmoeller(resultat, vindm_gdf)
+
+    # 3c. Beregn afstand til nærmeste solcelleanlæg
+    resultat = beregn_afstand_solceller(resultat, sol_gdf)
 
     # 4. Gem output
     print("\n[4/4] Gemmer resultater...")

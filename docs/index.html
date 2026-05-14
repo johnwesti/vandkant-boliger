@@ -16,51 +16,46 @@
 
   #topbar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-    background: #1a5276; color: white;
-    display: flex; align-items: center; gap: 16px;
-    padding: 10px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    background: white; color: #222;
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.12);
+    height: 52px;
   }
-  #topbar h1 { font-size: 16px; font-weight: 700; letter-spacing: .3px; }
-  #topbar .count { font-size: 13px; opacity: .85; }
+  #topbar h1 { font-size: 15px; font-weight: 700; color: #E85C2C; letter-spacing: -.2px; white-space: nowrap; }
+  #topbar .count { font-size: 12px; color: #888; white-space: nowrap; }
   #topbar .filters { margin-left: auto; display: flex; gap: 8px; align-items: center; }
   #topbar select, #topbar input {
-    border: none; border-radius: 6px; padding: 5px 10px;
-    font-size: 13px; background: rgba(255,255,255,.15); color: white;
+    border: 1px solid #ddd; border-radius: 6px; padding: 5px 10px;
+    font-size: 13px; background: white; color: #333;
     outline: none; cursor: pointer;
   }
+  #topbar select:hover, #topbar input:hover { border-color: #bbb; }
   #topbar select option { color: #222; background: white; }
-  #topbar input::placeholder { color: rgba(255,255,255,.6); }
+  #topbar input::placeholder { color: #aaa; }
 
-  #map { position: fixed; top: 48px; left: 0; bottom: 0; right: 380px; }
+  #map { position: fixed; top: 52px; left: 0; bottom: 0; right: 0; }
 
-  #sidebar {
-    position: fixed; top: 48px; right: 0; bottom: 0; width: 380px;
-    background: white; overflow-y: auto;
-    border-left: 1px solid #e0e0e0;
-  }
-  #sidebar-header {
-    padding: 12px 16px; background: #f8f8f8;
-    border-bottom: 1px solid #e8e8e8; font-size: 13px; color: #555;
-  }
+  #sidebar { display: none; }
+  #sidebar-header { display: none; }
 
   .bolig-card {
     border-bottom: 1px solid #eee; cursor: pointer;
     transition: background .15s;
     text-decoration: none; color: inherit; display: block;
   }
-  .bolig-card:hover { background: #f0f7ff; }
-  .bolig-card.active { background: #e8f4fd; border-left: 3px solid #1a5276; }
+  .bolig-card:hover { background: #fff7f4; }
+  .bolig-card.active { background: #fff0eb; border-left: 3px solid #E85C2C; }
   .card-img {
     width: 100%; height: 160px; object-fit: cover;
     background: #e8e8e8; display: block;
   }
   .card-img-placeholder {
-    width: 100%; height: 120px; background: linear-gradient(135deg,#dde8f0,#c8d8e8);
+    width: 100%; height: 120px; background: linear-gradient(135deg,#f5e8e4,#e8d0c8);
     display: flex; align-items: center; justify-content: center;
-    color: #7a9ab0; font-size: 28px;
+    color: #c0907a; font-size: 28px;
   }
   .card-body { padding: 10px 14px 12px; }
-  .card-pris { font-size: 18px; font-weight: 700; color: #1a5276; }
+  .card-pris { font-size: 18px; font-weight: 700; color: #E85C2C; }
   .card-adresse { font-size: 13px; color: #333; margin: 2px 0; }
   .card-by { font-size: 12px; color: #777; }
   .card-meta {
@@ -74,7 +69,7 @@
   }
   .badge-roed  { background: #fde8e8; color: #c0392b; }
   .badge-orange{ background: #fef3e2; color: #d35400; }
-  .badge-blaa  { background: #e8f4fd; color: #1a5276; }
+  .badge-blaa  { background: #fef0eb; color: #E85C2C; }
 
   /* Leaflet popup */
   .leaflet-popup-content-wrapper {
@@ -83,21 +78,21 @@
   }
   .leaflet-popup-content { margin: 0; width: 260px !important; }
   .popup-inner { padding: 14px; }
-  .popup-pris { font-size: 16px; font-weight: 700; color: #1a5276; }
+  .popup-pris { font-size: 16px; font-weight: 700; color: #E85C2C; }
   .popup-adresse { font-size: 13px; margin: 3px 0 8px; }
   .popup-meta { font-size: 12px; color: #666; line-height: 1.7; }
   .popup-link {
     display: block; margin-top: 10px; text-align: center;
-    background: #1a5276; color: white; padding: 8px;
+    background: #E85C2C; color: white; padding: 8px;
     border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;
   }
-  .popup-link:hover { background: #154360; }
+  .popup-link:hover { background: #d04e20; }
 
   /* Custom marker */
   .pris-marker {
-    background: white; border: 2px solid #1a5276;
+    background: white; border: 2px solid #E85C2C;
     border-radius: 20px; padding: 3px 8px;
-    font-size: 11px; font-weight: 700; color: #1a5276;
+    font-size: 11px; font-weight: 700; color: #E85C2C;
     white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.2);
   }
   .pris-marker.roed  { border-color: #c0392b; color: #c0392b; }
@@ -105,7 +100,7 @@
 
   .filter-group { margin-bottom: 14px; }
   .filter-group label { display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px; }
-  .range-row { display:flex; justify-content:space-between; font-size:12px; color:#1a5276; font-weight:600; margin-bottom:4px; }
+  .range-row { display:flex; justify-content:space-between; font-size:12px; color:#E85C2C; font-weight:600; margin-bottom:4px; }
   .dual-range { position:relative; height:20px; }
   .dual-range input[type=range] {
     position:absolute; width:100%; height:4px; background:transparent;
@@ -113,26 +108,25 @@
   }
   .dual-range input[type=range]::-webkit-slider-thumb {
     -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
-    background:#1a5276; cursor:pointer; pointer-events:all;
+    background:#E85C2C; cursor:pointer; pointer-events:all;
     border:2px solid white; box-shadow:0 1px 4px rgba(0,0,0,.3);
   }
   .dual-range input[type=range]::-webkit-slider-runnable-track {
-    height:4px; background:#dde8f0; border-radius:2px;
+    height:4px; background:#f0e0d8; border-radius:2px;
   }
 
   .kl-btn {
     width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; border-radius: 50%; background: #1a1a2e; color: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: background .15s, transform .1s;
-    user-select: none; flex-shrink: 0;
+    cursor: pointer; border-radius: 50%; background: white; color: #444;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: background .15s, transform .1s;
+    user-select: none; flex-shrink: 0; border: 1px solid #e0e0e0;
   }
-  .kl-btn:hover { background: #2c2c4e; transform: scale(1.08); }
-  .kl-btn.aktiv { background: #1a5276; box-shadow: 0 2px 8px rgba(26,82,118,.5); }
+  .kl-btn:hover { background: #f5f5f5; transform: scale(1.08); }
+  .kl-btn.aktiv { background: #E85C2C; color: white; border-color: #E85C2C; box-shadow: 0 2px 8px rgba(232,92,44,.4); }
 
   @media (max-width: 700px) {
-    #map { right: 0; bottom: 45vh; }
-    #sidebar { top: 55vh; right: 0; left: 0; width: 100%; }
-    #kortlag-panel { left: 6px; top: auto; bottom: 47vh; }
+    #map { top: 52px; right: 0; bottom: 0; }
+    #kortlag-panel { left: 6px; }
   }
 </style>
 </head>
@@ -144,14 +138,14 @@
   <span class="count" style="margin-left:auto;margin-right:16px;font-size:11px;opacity:.7">Opdateret fra Boliga: 14.05.2026 13:48</span>
   <div class="filters">
     <div style="position:relative;display:inline-block">
-      <button id="type-btn" onclick="toggleTypeMenu()" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
+      <button id="type-btn" onclick="toggleTypeMenu()" style="border:1px solid #ddd;border-radius:6px;padding:5px 10px;font-size:13px;background:white;color:#333;cursor:pointer;outline:none;font-family:inherit">
         Boligtype ▾
       </button>
       <div id="type-menu" style="display:none;position:absolute;top:34px;left:0;background:white;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:8px;z-index:2000;min-width:180px">
         <div id="type-checkboxes"></div>
       </div>
     </div>
-    <button id="filter-btn" onclick="toggleFilterPanel()" style="border:none;border-radius:6px;padding:5px 12px;font-size:13px;background:rgba(255,255,255,.15);color:white;cursor:pointer;outline:none">
+    <button id="filter-btn" onclick="toggleFilterPanel()" style="border:1px solid #ddd;border-radius:6px;padding:5px 12px;font-size:13px;background:white;color:#333;cursor:pointer;outline:none;font-family:inherit">
       Filtre ▾
     </button>
     <select id="filter-afstand" onchange="applyFilters()" title="Max afstand til kyst">
@@ -162,11 +156,11 @@
 
   </div>
   <!-- Filter panel -->
-  <div id="filter-panel" style="display:none;position:fixed;top:48px;right:380px;width:420px;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 0 10px;z-index:999;box-shadow:-4px 4px 16px rgba(0,0,0,.15);flex-direction:column;max-height:calc(100vh - 48px)">
+  <div id="filter-panel" style="display:none;position:fixed;top:48px;right:0;width:420px;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 0 10px;z-index:999;box-shadow:-4px 4px 16px rgba(0,0,0,.15);flex-direction:column;max-height:calc(100vh - 48px)">
 
     <!-- Faner -->
     <div style="display:flex;border-bottom:2px solid #eee">
-      <button id="tab-filtre" onclick="skiftTab('filtre')" style="flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:600;color:#1a5276;border-bottom:2px solid #1a5276;margin-bottom:-2px;cursor:pointer">Filtre</button>
+      <button id="tab-filtre" onclick="skiftTab('filtre')" style="flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:600;color:#E85C2C;border-bottom:2px solid #E85C2C;margin-bottom:-2px;cursor:pointer">Filtre</button>
       <button id="tab-byer" onclick="skiftTab('byer')" style="flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:600;color:#999;cursor:pointer">Byer <span id="byer-badge" style="display:none;background:#e74c3c;color:white;border-radius:10px;padding:1px 6px;font-size:10px"></span></button>
       <button id="tab-lag" onclick="skiftTab('lag')" style="flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:600;color:#999;cursor:pointer">Kortlag</button>
       <button onclick="nulstilFiltre()" style="padding:8px 12px;border:none;background:none;font-size:11px;color:#999;cursor:pointer;border-left:1px solid #eee">Nulstil</button>
@@ -176,10 +170,10 @@
     <div id="panel-filtre" style="padding:14px;overflow-y:auto">
       <div class="filter-group">
         <label>Pris</label>
-        <div class="range-row"><span id="lbl-minpris">0 kr.</span><span id="lbl-maxpris">40 mio.</span></div>
+        <div class="range-row"><span id="lbl-minpris">0 kr.</span><span id="lbl-maxpris">10 mio.</span></div>
         <div class="dual-range">
           <input type="range" id="slider-minpris" min="0" max="40000000" step="250000" value="0" oninput="updateSlider('pris')">
-          <input type="range" id="slider-maxpris" min="0" max="40000000" step="250000" value="40000000" oninput="updateSlider('pris')">
+          <input type="range" id="slider-maxpris" min="0" max="40000000" step="250000" value="10000000" oninput="updateSlider('pris')">
         </div>
       </div>
       <div class="filter-group">
@@ -200,16 +194,21 @@
       </div>
       <div class="filter-group">
         <label>Liggetid (dage)</label>
-        <div class="range-row"><span id="lbl-minlig">0 dage</span><span id="lbl-maxlig">365+ dage</span></div>
+        <div class="range-row"><span id="lbl-minlig">1 dag</span><span id="lbl-maxlig">365+ dage</span></div>
         <div class="dual-range">
-          <input type="range" id="slider-minlig" min="0" max="365" step="1" value="0" oninput="updateSlider('lig')">
+          <input type="range" id="slider-minlig" min="0" max="365" step="1" value="1" oninput="updateSlider('lig')">
           <input type="range" id="slider-maxlig" min="0" max="365" step="1" value="365" oninput="updateSlider('lig')">
         </div>
       </div>
       <div class="filter-group">
         <label>Min. afstand til vindmølle</label>
         <div class="range-row"><span id="lbl-vindm">0 m (alle)</span></div>
-        <input type="range" id="slider-vindm" min="0" max="3000" step="100" value="0" style="width:100%" oninput="updateSlider('vindm')">
+        <input type="range" id="slider-vindm" min="0" max="5000" step="100" value="0" style="width:100%" oninput="updateSlider('vindm')">
+      </div>
+      <div class="filter-group">
+        <label>Min. afstand til solcelleanlæg</label>
+        <div class="range-row"><span id="lbl-sol">0 m (alle)</span></div>
+        <input type="range" id="slider-sol" min="0" max="5000" step="100" value="0" style="width:100%" oninput="updateSlider('sol')">
       </div>
       <div style="margin-top:10px;font-size:12px;color:#888;text-align:center" id="filter-result-info"></div>
     </div>
@@ -219,7 +218,7 @@
       <div style="padding:10px 12px;border-bottom:1px solid #eee">
         <input id="by-soeg" type="text" placeholder="Søg kommune eller by..." oninput="tegn()"
           style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none">
-        <div style="display:flex;gap:12px;margin-top:6px;font-size:12px;color:#1a5276">
+        <div style="display:flex;gap:12px;margin-top:6px;font-size:12px;color:#E85C2C">
           <a style="cursor:pointer;text-decoration:underline" onclick="selectAlleBy(true)">Vælg alle</a>
           <a style="cursor:pointer;text-decoration:underline" onclick="selectAlleBy(false)">Fravælg alle</a>
           <span id="by-info" style="margin-left:auto;color:#888"></span>
@@ -229,11 +228,11 @@
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead style="position:sticky;top:0;z-index:1">
             <tr>
-              <th style="width:32px;background:#f0f4f8;padding:6px;border-bottom:2px solid #ddd;text-align:center">✓</th>
-              <th id="bth-navn" onclick="bySort('navn')" style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:left">Kommune</th>
-              <th style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;text-align:left;color:#999;font-weight:400">Postnr</th>
-              <th id="bth-bef" onclick="bySort('bef')" style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:right">Indb.</th>
-              <th id="bth-boliger" onclick="bySort('boliger')" style="background:#f0f4f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:right">Boliger</th>
+              <th style="width:32px;background:#f8f8f8;padding:6px;border-bottom:2px solid #ddd;text-align:center">✓</th>
+              <th id="bth-navn" onclick="bySort('navn')" style="background:#f8f8f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:left">Kommune</th>
+              <th style="background:#f8f8f8;padding:6px 8px;border-bottom:2px solid #ddd;text-align:left;color:#999;font-weight:400">Postnr</th>
+              <th id="bth-bef" onclick="bySort('bef')" style="background:#f8f8f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:right">Indb.</th>
+              <th id="bth-boliger" onclick="bySort('boliger')" style="background:#f8f8f8;padding:6px 8px;border-bottom:2px solid #ddd;cursor:pointer;text-align:right">Boliger</th>
             </tr>
           </thead>
           <tbody id="by-tbody"></tbody>
@@ -288,8 +287,8 @@
         </label>
 
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa" onclick="toggleMat()">
-          <span id="mat-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #1a5276;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <span id="mat-check-inner" style="display:none;width:10px;height:10px;background:#1a5276;border-radius:2px"></span>
+          <span id="mat-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #E85C2C;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span id="mat-check-inner" style="display:none;width:10px;height:10px;background:#E85C2C;border-radius:2px"></span>
           </span>
           <span style="display:flex;flex-direction:column">
             <span style="font-weight:600;font-size:13px">📐 Matrikler</span>
@@ -334,7 +333,7 @@
 
       <div style="margin-top:14px;font-size:11px;color:#999;line-height:1.5">
         Klik på en lokalplan-polygon for at se plannavn, kommune og link til planen.<br>
-        <a href="https://sologvindinfo.dk/spatialmap" target="_blank" style="color:#1a5276">Åbn fuld vindmøllekort på sologvindinfo.dk →</a>
+        <a href="https://sologvindinfo.dk/spatialmap" target="_blank" style="color:#E85C2C">Åbn fuld vindmøllekort på sologvindinfo.dk →</a>
       </div>
     </div>
 
@@ -362,7 +361,7 @@
 </div>
 
 <!-- Flydende kortlag-knapper (Boliga-stil) – venstre side af kortet -->
-<div id="kortlag-panel" style="position:fixed;left:10px;top:110px;z-index:900;display:flex;flex-direction:column;gap:8px">
+<div id="kortlag-panel" style="position:fixed;left:10px;top:145px;z-index:900;display:flex;flex-direction:column;gap:8px">
   <div id="kl-luftfoto" onclick="toggleLuftfoto()"         class="kl-btn" title="Luftfoto"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3a2 2 0 00-2 2v14a2 2 0 002 2h18a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H3V5h18v14zm-8-6l-3-4-4 5h14l-4-5-3 4z"/></svg></div>
   <div id="kl-solind"   onclick="toggleSolLys()"           class="kl-btn" title="Solens bane">☀️</div>
   <div id="kl-oversvom" onclick="toggleOversvom()"         class="kl-btn" title="Oversvømmelse"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm-1 16.93V13H9l3-6v5h2l-3 6.93z"/></svg></div>
@@ -418,8 +417,11 @@ function markerKlasse(a) {
 }
 
 // Kort – to baselayers (topo og luftfoto)
-const topoLag = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-  attribution: "© OpenStreetMap © CARTO", subdomains: "abcd", maxZoom: 19
+const DF_USER = "LYNZPAJIGS", DF_PASS = "tJqYAcw8d-c";
+const topoLag = L.tileLayer.wms(
+  `https://services.datafordeler.dk/DKskaermkort/topo_skaermkort/1.0.0/wms?username=${DF_USER}&password=${DF_PASS}`, {
+  layers: "dtk_skaermkort_daempet", format: "image/png", transparent: false,
+  version: "1.3.0", attribution: "© SDFI", maxZoom: 20
 });
 const luftfotoLag = L.tileLayer(
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
@@ -559,9 +561,9 @@ function toggleSolLys() {
   syncKl("kl-solind", solLysAktiv);
 }
 
-// Vejstøj – Vejdirektoratets WMS
-const stojLag = L.tileLayer.wms("https://gis.vd.dk/arcgis/services/OffentligData/Stoej/MapServer/WmsServer", {
-  layers: "0", format: "image/png", transparent: true, version: "1.3.0", opacity: 0.65,
+// Vejstøj – Vejdirektoratets WMS (GeoCloud)
+const stojLag = L.tileLayer.wms("https://geocloud.vd.dk/STOEJ/ows", {
+  layers: "stoejkurver", format: "image/png", transparent: true, version: "1.3.0", opacity: 0.7,
   attribution: "Vejdirektoratet"
 });
 let stojAktiv = false;
@@ -573,10 +575,11 @@ function toggleStoj() {
   syncKl("kl-stoj", stojAktiv);
 }
 
-// Oversvømmelsesrisiko – Klimatilpasning.dk
-const oversvomLag = L.tileLayer.wms("https://www.klimatilpasning.dk/service/wms/", {
-  layers: "havvand_20cm", format: "image/png", transparent: true, version: "1.1.1", opacity: 0.6,
-  attribution: "Klimatilpasning.dk"
+// Oversvømmelsesrisiko – Datafordeler DHM (arealer under 0,5m kote = havvandsrisiko)
+const oversvomLag = L.tileLayer.wms(
+  `https://wms.datafordeler.dk/DHMNedboer/dhm/1.0.0/WMS?username=${DF_USER}&password=${DF_PASS}`, {
+  layers: "dhm_kote_0_5_m", format: "image/png", transparent: true, version: "1.3.0", opacity: 0.65,
+  attribution: "© Styrelsen for Dataforsyning og Infrastruktur"
 });
 let oversvomAktiv = false;
 function toggleOversvom() {
@@ -610,7 +613,7 @@ function planPopup(f) {
   const p = f.properties;
   const mw = p.megawatt ? `<br>Kapacitet: ${p.megawatt} MW` : "";
   const dato = p.datovedt ? `<br>Vedtaget: ${fmtDato(p.datovedt)}` : (p.datoforsl ? `<br>Forslag: ${fmtDato(p.datoforsl)}` : "");
-  const link = p.doklink ? `<br><a href="${p.doklink}" target="_blank" style="color:#1a5276">Se lokalplan →</a>` : "";
+  const link = p.doklink ? `<br><a href="${p.doklink}" target="_blank" style="color:#E85C2C">Se lokalplan →</a>` : "";
   return `<div style="font-size:13px;max-width:220px"><b>${p.plannavn || "Vindmølle-lokalplan"}</b><br>${p.kommunenavn || ""}${dato}${mw}${link}</div>`;
 }
 
@@ -672,7 +675,7 @@ const cluster = L.markerClusterGroup({
     const n = c.getChildCount();
     const sz = n > 100 ? 44 : n > 20 ? 36 : 28;
     return L.divIcon({
-      html: `<div style="background:#1a5276;color:white;border-radius:50%;width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3)">${n}</div>`,
+      html: `<div style="background:#E85C2C;color:white;border-radius:50%;width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3)">${n}</div>`,
       className: "", iconSize: [sz, sz]
     });
   }
@@ -858,21 +861,25 @@ function updateSlider(type) {
   } else if (type === 'vindm') {
     const v = parseInt(document.getElementById("slider-vindm").value);
     document.getElementById("lbl-vindm").textContent = v === 0 ? "0 m (alle)" : "mindst " + v.toLocaleString("da-DK") + " m";
+  } else if (type === 'sol') {
+    const v = parseInt(document.getElementById("slider-sol").value);
+    document.getElementById("lbl-sol").textContent = v === 0 ? "0 m (alle)" : "mindst " + v.toLocaleString("da-DK") + " m";
   }
   applyFilters();
 }
 
 function nulstilFiltre() {
   document.getElementById("slider-minpris").value = 0;
-  document.getElementById("slider-maxpris").value = 40000000;
+  document.getElementById("slider-maxpris").value = 10000000;
   document.getElementById("slider-minkvm").value = 0;
   document.getElementById("slider-maxkvm").value = 500;
   document.getElementById("slider-mingrund").value = 0;
   document.getElementById("slider-maxgrund").value = 10000;
-  document.getElementById("slider-minlig").value = 0;
+  document.getElementById("slider-minlig").value = 1;
   document.getElementById("slider-maxlig").value = 365;
   document.getElementById("slider-vindm").value = 0;
-  ['pris','kvm','grund','lig','vindm'].forEach(updateSlider);
+  document.getElementById("slider-sol").value = 0;
+  ['pris','kvm','grund','lig','vindm','sol'].forEach(updateSlider);
 }
 
 function toggleTypeMenu() {
@@ -891,14 +898,15 @@ function applyFilters() {
   const checkedTypes = Array.from(document.querySelectorAll("#type-menu input:checked")).map(i => i.value);
   const afstand   = parseInt(document.getElementById("filter-afstand").value);
   const minpris   = parseInt(document.getElementById("slider-minpris")?.value)  || 0;
-  const maxpris   = parseInt(document.getElementById("slider-maxpris")?.value)  || 40000000;
+  const maxpris   = parseInt(document.getElementById("slider-maxpris")?.value)  || 10000000;
   const minkvm    = parseInt(document.getElementById("slider-minkvm")?.value)   || 0;
   const maxkvm    = parseInt(document.getElementById("slider-maxkvm")?.value)   || 500;
   const mingrund  = parseInt(document.getElementById("slider-mingrund")?.value) || 0;
   const maxgrund  = parseInt(document.getElementById("slider-maxgrund")?.value) || 10000;
-  const minlig    = parseInt(document.getElementById("slider-minlig")?.value)   || 0;
+  const minlig    = parseInt(document.getElementById("slider-minlig")?.value)   || 1;
   const maxlig    = parseInt(document.getElementById("slider-maxlig")?.value)   || 365;
   const minvindm  = parseInt(document.getElementById("slider-vindm")?.value)    || 0;
+  const minsol    = parseInt(document.getElementById("slider-sol")?.value)      || 0;
   const maxPrisEffektiv  = maxpris  >= 40000000 ? Infinity : maxpris;
   const maxKvmEffektiv   = maxkvm   >= 500      ? Infinity : maxkvm;
   const maxGrundEffektiv = maxgrund >= 10000    ? Infinity : maxgrund;
@@ -915,6 +923,7 @@ function applyFilters() {
     (b.grundkvm === 0 || (b.grundkvm >= mingrund && b.grundkvm <= maxGrundEffektiv)) &&
     (b.liggetid === 0 || (b.liggetid >= minlig && b.liggetid <= maxLigEffektiv)) &&
     (minvindm === 0 || b.vindm >= minvindm) &&
+    (minsol === 0 || b.sol >= minsol) &&
     !ekskl.has(String(b.pnr))
   );
   
@@ -1058,8 +1067,8 @@ function skiftTab(tab) {
   ['filtre','byer','lag'].forEach(function(t) {
     const btn = document.getElementById('tab-' + t);
     const active = t === tab;
-    btn.style.color = active ? '#1a5276' : '#999';
-    btn.style.borderBottom = active ? '2px solid #1a5276' : 'none';
+    btn.style.color = active ? '#E85C2C' : '#999';
+    btn.style.borderBottom = active ? '2px solid #E85C2C' : 'none';
   });
   if (tab === 'byer') tegn();
 }
@@ -1093,7 +1102,7 @@ function tegn() {
     const alleEkskl = arr.every(k => erEkskl(k));
     html += `<tr style="background:#edf2f7;cursor:pointer" onclick="toggleGruppe('${g}')">
       <td style="text-align:center;padding:5px">
-        <input type="checkbox" ${alleEkskl ? '' : 'checked'} onclick="event.stopPropagation();toggleGruppe('${g}')" style="accent-color:#1a5276">
+        <input type="checkbox" ${alleEkskl ? '' : 'checked'} onclick="event.stopPropagation();toggleGruppe('${g}')" style="accent-color:#E85C2C">
       </td>
       <td colspan="3" style="padding:5px 8px;font-weight:700;font-size:11px;color:#2c5282;letter-spacing:.3px">
         ${g} <span style="font-weight:400;color:#666">(${arr.length})</span>
@@ -1105,13 +1114,13 @@ function tegn() {
       html += `<tr style="opacity:${ekskl ? 0.4 : 1}">
         <td style="text-align:center;padding:4px">
           <input type="checkbox" ${ekskl ? '' : 'checked'} data-pnr="${k.pnr.join(',')}"
-            onchange="toggleKom(this)" style="accent-color:#1a5276">
+            onchange="toggleKom(this)" style="accent-color:#E85C2C">
         </td>
         <td style="padding:4px 8px;font-weight:500">${k.navn}</td>
         <td style="padding:4px 8px;color:#888;font-size:11px">${k.pnr.slice(0,3).join(', ')}${k.pnr.length > 3 ? '…' : ''}</td>
         <td style="padding:4px 8px;text-align:right;color:#888">${k.bef.toLocaleString('da-DK')}</td>
         <td style="padding:4px 8px;text-align:right">
-          ${boliger > 0 ? `<span style="background:#e8f4fd;color:#1a5276;border-radius:8px;padding:1px 6px;font-size:11px;font-weight:600">${boliger}</span>` : '–'}
+          ${boliger > 0 ? `<span style="background:#fef0eb;color:#E85C2C;border-radius:8px;padding:1px 6px;font-size:11px;font-weight:600">${boliger}</span>` : '–'}
         </td>
       </tr>`;
     });
