@@ -794,9 +794,19 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
     height:4px; background:#dde8f0; border-radius:2px;
   }}
 
+  .kl-btn {{
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border-radius: 50%; background: #1a1a2e; color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: background .15s, transform .1s;
+    user-select: none; flex-shrink: 0;
+  }}
+  .kl-btn:hover {{ background: #2c2c4e; transform: scale(1.08); }}
+  .kl-btn.aktiv {{ background: #1a5276; box-shadow: 0 2px 8px rgba(26,82,118,.5); }}
+
   @media (max-width: 700px) {{
     #map {{ right: 0; bottom: 45vh; }}
     #sidebar {{ top: 55vh; right: 0; left: 0; width: 100%; }}
+    #kortlag-panel {{ left: 6px; top: auto; bottom: 47vh; }}
   }}
 </style>
 </head>
@@ -1006,6 +1016,18 @@ def gem_kort(gdf, filnavn=OUTPUT_HTML, vindm_gdf=None):
 </div>
 
 <div id="map"></div>
+
+<!-- Flydende kortlag-knapper (Boliga-stil) – venstre side af kortet -->
+<div id="kortlag-panel" style="position:fixed;left:10px;top:110px;z-index:900;display:flex;flex-direction:column;gap:8px">
+  <div id="kl-luftfoto" onclick="toggleLuftfoto()"         class="kl-btn" title="Luftfoto"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3a2 2 0 00-2 2v14a2 2 0 002 2h18a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H3V5h18v14zm-8-6l-3-4-4 5h14l-4-5-3 4z"/></svg></div>
+  <div id="kl-solind"   onclick="toggleSolInd()"           class="kl-btn" title="Solens bane"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 110 10A5 5 0 0112 7zm0-2a7 7 0 100 14A7 7 0 0012 5zm0-3a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm0 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm9-9a1 1 0 110 2h-1a1 1 0 110-2h1zM4 12a1 1 0 110 2H3a1 1 0 110-2h1zm14.66-6.07a1 1 0 010 1.41l-.7.71a1 1 0 11-1.42-1.42l.71-.7a1 1 0 011.41 0zM7.05 17.66a1 1 0 010 1.41l-.71.71a1 1 0 01-1.41-1.42l.7-.7a1 1 0 011.42 0zm11.32.7a1 1 0 01-1.41 0l-.71-.7a1 1 0 011.42-1.42l.7.71a1 1 0 010 1.41zM5.34 7.05a1 1 0 01-1.41 0l-.71-.71a1 1 0 011.42-1.41l.7.7a1 1 0 010 1.42z"/></svg></div>
+  <div id="kl-oversvom" onclick="toggleOversvom()"         class="kl-btn" title="Oversvømmelse"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm-1 16.93V13H9l3-6v5h2l-3 6.93z"/></svg></div>
+  <div id="kl-stoj"     onclick="toggleStoj()"             class="kl-btn" title="Støj"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></div>
+  <div id="kl-mat"      onclick="toggleMat()"              class="kl-btn" title="Matrikler"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4a2 2 0 00-2 2v16a2 2 0 002 2h16a2 2 0 002-2V4a2 2 0 00-2-2zm0 18H4V4h16v16zM6 6h5v5H6zm7 0h5v5h-5zm-7 7h5v5H6zm7 0h5v5h-5z"/></svg></div>
+  <div id="kl-vindm"    onclick="toggleVindmoellerLag()"   class="kl-btn" title="Vindmøller"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L8 9l4 1-4 10h1l3-6 3 6h1L12 10l4-1L12 2zM6 17l-2 4h4l-2-4zm12 0l-2 4h4l-2-4z"/></svg></div>
+  <div id="kl-sol"      onclick="toggleSolLag()"           class="kl-btn" title="Solcelleanlæg"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v12H3V6zm2 2v8h14V8H5zm1 1h3v2H6V9zm4 0h4v2h-4V9zm5 0h3v2h-3V9zM6 13h3v2H6v-2zm4 0h4v2h-4v-2zm5 0h3v2h-3v-2z"/></svg></div>
+  <div id="kl-plan"     onclick="togglePlanLag()"          class="kl-btn" title="Vindmølle-lokalplaner"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm4 18H6V4h7v5h5v11zm-9-7h6v2H9v-2zm0-4h6v2H9V9z"/></svg></div>
+</div>
 <div id="sidebar">
   <div id="sidebar-header">Klik på en bolig for detaljer</div>
   <div id="kort-liste"></div>
@@ -1061,12 +1083,19 @@ const luftfotoLag = L.tileLayer(
 }});
 const map = L.map("map", {{ layers: [topoLag] }}).setView([56.0, 10.5], 7);
 
+function syncKl(id, aktiv) {{
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle("aktiv", aktiv);
+}}
+
 let luftfotoAktiv = false;
 function toggleLuftfoto() {{
   luftfotoAktiv = !luftfotoAktiv;
   if (luftfotoAktiv) {{ map.removeLayer(topoLag); luftfotoLag.addTo(map); luftfotoLag.bringToBack(); }}
   else {{ map.removeLayer(luftfotoLag); topoLag.addTo(map); topoLag.bringToBack(); }}
-  document.getElementById("luftfoto-check-inner").style.display = luftfotoAktiv ? "block" : "none";
+  const ci = document.getElementById("luftfoto-check-inner");
+  if (ci) ci.style.display = luftfotoAktiv ? "block" : "none";
+  syncKl("kl-luftfoto", luftfotoAktiv);
 }}
 
 // Eksisterende vindmøller – WMS fra Bolig- og Planstyrelsen (BPST)
@@ -1081,7 +1110,9 @@ let vindmLagAktiv = false;
 function toggleVindmoellerLag() {{
   vindmLagAktiv = !vindmLagAktiv;
   if (vindmLagAktiv) {{ vindmLag.addTo(map); }} else {{ map.removeLayer(vindmLag); }}
-  document.getElementById("vindm-check-inner").style.display = vindmLagAktiv ? "block" : "none";
+  const ci = document.getElementById("vindm-check-inner");
+  if (ci) ci.style.display = vindmLagAktiv ? "block" : "none";
+  syncKl("kl-vindm", vindmLagAktiv);
 }}
 
 // Store solcelleanlæg – WMS fra BPST
@@ -1094,7 +1125,9 @@ let solLagAktiv = false;
 function toggleSolLag() {{
   solLagAktiv = !solLagAktiv;
   if (solLagAktiv) {{ solLag.addTo(map); }} else {{ map.removeLayer(solLag); }}
-  document.getElementById("sol-check-inner").style.display = solLagAktiv ? "block" : "none";
+  const ci = document.getElementById("sol-check-inner");
+  if (ci) ci.style.display = solLagAktiv ? "block" : "none";
+  syncKl("kl-sol", solLagAktiv);
 }}
 
 // Solindstråling på tage – BPST tage_udst
@@ -1106,7 +1139,9 @@ let solIndAktiv = false;
 function toggleSolInd() {{
   solIndAktiv = !solIndAktiv;
   if (solIndAktiv) {{ solIndLag.addTo(map); }} else {{ map.removeLayer(solIndLag); }}
-  document.getElementById("solind-check-inner").style.display = solIndAktiv ? "block" : "none";
+  const ci = document.getElementById("solind-check-inner");
+  if (ci) ci.style.display = solIndAktiv ? "block" : "none";
+  syncKl("kl-solind", solIndAktiv);
 }}
 
 // Vejstøj – Vejdirektoratets WMS
@@ -1118,7 +1153,9 @@ let stojAktiv = false;
 function toggleStoj() {{
   stojAktiv = !stojAktiv;
   if (stojAktiv) {{ stojLag.addTo(map); }} else {{ map.removeLayer(stojLag); }}
-  document.getElementById("stoj-check-inner").style.display = stojAktiv ? "block" : "none";
+  const ci = document.getElementById("stoj-check-inner");
+  if (ci) ci.style.display = stojAktiv ? "block" : "none";
+  syncKl("kl-stoj", stojAktiv);
 }}
 
 // Oversvømmelsesrisiko – Klimatilpasning.dk
@@ -1130,7 +1167,9 @@ let oversvomAktiv = false;
 function toggleOversvom() {{
   oversvomAktiv = !oversvomAktiv;
   if (oversvomAktiv) {{ oversvomLag.addTo(map); }} else {{ map.removeLayer(oversvomLag); }}
-  document.getElementById("oversvom-check-inner").style.display = oversvomAktiv ? "block" : "none";
+  const ci = document.getElementById("oversvom-check-inner");
+  if (ci) ci.style.display = oversvomAktiv ? "block" : "none";
+  syncKl("kl-oversvom", oversvomAktiv);
 }}
 
 // Matrikelkort – Datafordeler (kræver token fra dataforsyningen.dk)
@@ -1144,7 +1183,9 @@ let matAktiv = false;
 function toggleMat() {{
   matAktiv = !matAktiv;
   if (matAktiv) {{ matLag.addTo(map); }} else {{ map.removeLayer(matLag); }}
-  document.getElementById("mat-check-inner").style.display = matAktiv ? "block" : "none";
+  const ci = document.getElementById("mat-check-inner");
+  if (ci) ci.style.display = matAktiv ? "block" : "none";
+  syncKl("kl-mat", matAktiv);
 }}
 
 // Vindmølle-lokalplaner lag
@@ -1201,7 +1242,9 @@ function togglePlanLag() {{
     map.removeLayer(planVedtagetLag); map.removeLayer(planForslagLag);
     map.off("click", planGetInfo);
   }}
-  document.getElementById("planvindm-check-inner").style.display = planLagAktiv ? "block" : "none";
+  const ci = document.getElementById("planvindm-check-inner");
+  if (ci) ci.style.display = planLagAktiv ? "block" : "none";
+  syncKl("kl-plan", planLagAktiv);
 }}
 
 const cluster = L.markerClusterGroup({{
