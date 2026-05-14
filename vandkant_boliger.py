@@ -1838,11 +1838,7 @@ function opdaterByBadge() {{
 # MAIN
 # ─────────────────────────────────────────────
 def main():
-    global MAX_AFSTAND_METER, BRUG_CACHE
-    # Deaktiver cache automatisk i GitHub Actions
-    if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
-        BRUG_CACHE = False
-        print("  → GitHub Actions detekteret – cache deaktiveret")
+    global MAX_AFSTAND_METER
     parser = argparse.ArgumentParser(description="Find boliger tæt på dansk kyst")
     parser.add_argument("--refresh", choices=["alle", "boliger", "kyst"],
                         help="Tving genhentning: 'alle', 'boliger' eller 'kyst'")
