@@ -1838,7 +1838,7 @@ function opdaterByBadge() {{
 # MAIN
 # ─────────────────────────────────────────────
 def main():
-    global MAX_AFSTAND_METER
+    global MAX_AFSTAND_METER, BRUG_CACHE
     parser = argparse.ArgumentParser(description="Find boliger tæt på dansk kyst")
     parser.add_argument("--refresh", choices=["alle", "boliger", "kyst"],
                         help="Tving genhentning: 'alle', 'boliger' eller 'kyst'")
